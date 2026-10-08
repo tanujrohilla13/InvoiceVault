@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>InvoiceVault</title>
-<meta name="description" content="Invoices and warranty slips in one place, stored in your own Google Drive." />
+<meta name="description" content="Bills, warranties and personal documents in one place, stored in your own Google Drive." />
 <meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)" />
 <link rel="manifest" href="manifest.webmanifest" />
@@ -240,29 +240,87 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
   background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 12px; font-size: 15px;
 }
 .toast.error { background: var(--danger); color: #fff; }
+
+/* ===== v2: tabs, documents, previews, vault, lock ===== */
+.tabs { max-width: 680px; margin: 0 auto; padding: 0 16px 10px; }
+.tabs-inner { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.tab {
+  flex: 1; height: 40px; border: 0; border-radius: 10px; background: transparent;
+  font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(21, 32, 43, .12); }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); display: inline-block; }
+.controls { top: calc(env(safe-area-inset-top, 0px) + var(--top-h, 112px)); }
+
+.sheet-sub { color: var(--muted); margin: -6px 0 14px; }
+.numbox { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); margin-bottom: 18px; }
+.numbox .val { flex: 1; min-width: 0; font-size: 18px; font-weight: 600; letter-spacing: .04em; font-variant-numeric: tabular-nums; word-break: break-all; }
+.numbox .val.muted { color: var(--muted); font-size: 15px; font-weight: 500; letter-spacing: 0; }
+.mini { border: 0; background: transparent; color: var(--accent); font-weight: 600; font-size: 14px; padding: 6px 8px; border-radius: 8px; }
+.mini:hover { background: var(--accent-soft); }
+
+.previews { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.previews .file-link { grid-column: 1 / -1; border: 0; width: 100%; text-align: left; }
+.preview {
+  aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background: var(--surface-2); padding: 0; display: grid; place-items: center;
+}
+.preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph { color: var(--muted); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+.ph svg.i { width: 16px; height: 16px; }
+
+.viewer { position: fixed; inset: 0; z-index: 45; background: #000; display: grid; place-items: center; }
+.viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.viewer .icon-btn { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; color: #fff; background: rgba(255, 255, 255, .15); }
+
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); cursor: pointer; }
+.check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--accent); flex-shrink: 0; }
+.check b { display: block; font-size: 15px; }
+.check small { color: var(--muted); }
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
+.badge svg.i { width: 16px; height: 16px; color: var(--accent); }
+.lockico { display: inline-flex; align-items: center; gap: 4px; }
+.lockico svg.i { width: 14px; height: 14px; }
+
+.dialog .inp {
+  width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface-2); margin-bottom: 12px;
+}
+.dialog .check { margin-bottom: 14px; background: var(--warn-soft); }
+.dialog .check input { accent-color: var(--warn); }
+#dlg { z-index: 35; }
+
+.lock { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; place-items: center; padding: 24px; }
+.lock-card { width: 100%; max-width: 340px; text-align: center; }
+.lock-card .logo { margin: 0 auto 16px; }
+.lock-card h2 { margin: 0 0 6px; font-size: 24px; letter-spacing: -0.01em; }
+.lock-card p { color: var(--muted); margin: 0 0 20px; }
+.lock-card .btn { width: 100%; }
+.lock-card .pin {
+  width: 100%; height: 56px; text-align: center; font-size: 26px; letter-spacing: .4em;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface); margin-bottom: 12px;
+}
+.linkbtn { border: 0; background: transparent; color: var(--muted); text-decoration: underline; margin-top: 18px; font-size: 14px; }
+.menu .label { font-size: 13px; color: var(--muted); padding: 14px 8px 4px; }
+.menu .state { margin-left: auto; color: var(--muted); font-size: 14px; }
+.toast { z-index: 60; }
 </style>
 </head>
 <body>
 
-<!-- Shown until you paste your Google Client ID below -->
 <section id="setup" class="gate" hidden>
   <div class="gate-card">
     <img class="logo" src="icon.svg" alt="" />
     <h1>One step left</h1>
     <p>Open <code>index.html</code> and paste your Google OAuth Client ID into <code>CLIENT_ID</code> near the top of the script.</p>
-    <ol>
-      <li>Google Cloud Console, then APIs &amp; Services, then Credentials</li>
-      <li>Copy the Web application Client ID</li>
-      <li>Reload this page</li>
-    </ol>
   </div>
 </section>
 
 <section id="signin" class="gate" hidden>
   <div class="gate-card">
     <img class="logo" src="icon.svg" alt="" />
-    <h1>Every bill and warranty, in one place.</h1>
-    <p>Photos and PDFs go into an InvoiceVault folder in your Google Drive. Product details go into a Google Sheet beside them.</p>
+    <h1>Bills, warranties and documents, in one place.</h1>
+    <p>Photos and PDFs go into an InvoiceVault folder in your Google Drive. Details go into a Google Sheet beside them.</p>
     <button class="btn primary" id="signinBtn">
       <svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
       Continue with Google
@@ -272,7 +330,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 </section>
 
 <section id="app" hidden>
-  <header class="topbar">
+  <header class="topbar" id="topbar">
     <div class="topbar-inner">
       <img class="logo" src="icon.svg" alt="" />
       <strong>InvoiceVault</strong>
@@ -280,35 +338,33 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
         <svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
     </div>
+    <nav class="tabs" aria-label="Sections">
+      <div class="tabs-inner" role="tablist">
+        <button class="tab" role="tab" data-view="bills" aria-selected="true">Bills<span class="dot" id="dotBills" hidden></span></button>
+        <button class="tab" role="tab" data-view="docs" aria-selected="false">Documents<span class="dot" id="dotDocs" hidden></span></button>
+      </div>
+    </nav>
   </header>
 
   <main class="wrap">
     <section class="summary" id="summary"></section>
-
     <div class="controls">
       <label class="search">
         <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Search product, brand, store, serial" aria-label="Search" autocomplete="off" />
+        <input id="q" type="search" aria-label="Search" autocomplete="off" />
       </label>
-      <div class="chips" id="chips" role="group" aria-label="Warranty status"></div>
+      <div class="chips" id="chips" role="group" aria-label="Filter"></div>
       <div class="selects">
-        <select id="cat" aria-label="Category"></select>
-        <select id="sort" aria-label="Sort">
-          <option value="expiry">Ending soonest</option>
-          <option value="newest">Newest purchase</option>
-          <option value="oldest">Oldest purchase</option>
-          <option value="price">Highest price</option>
-          <option value="name">Name A to Z</option>
-        </select>
+        <select id="sel1" aria-label="Filter"></select>
+        <select id="sel2" aria-label="Sort"></select>
       </div>
     </div>
-
     <div id="list" class="list"></div>
   </main>
 
   <button class="fab" id="addBtn">
     <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-    Add bill
+    <span id="addLabel">Add bill</span>
   </button>
 </section>
 
@@ -327,11 +383,30 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
   </div>
 </div>
 
+<div class="dialog-wrap" id="dlg" hidden>
+  <div class="dialog" id="dlgBox" role="dialog" aria-modal="true"></div>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <img id="viewerImg" alt="" />
+  <button class="icon-btn" aria-label="Close">
+    <svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+</div>
+
+<div class="lock" id="lock" hidden>
+  <div class="lock-card">
+    <img class="logo" src="icon.svg" alt="" />
+    <h2>InvoiceVault is locked</h2>
+    <div id="lockBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
 /* =========================================================
-   CONFIG — paste your OAuth Client ID here
+   CONFIG
    ========================================================= */
 const CLIENT_ID = '1009459609241-m8sj39d86aphojfcnjmuldlat3t7s9f7.apps.googleusercontent.com';
 
@@ -339,11 +414,32 @@ const CLIENT_ID = '1009459609241-m8sj39d86aphojfcnjmuldlat3t7s9f7.apps.googleuse
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const FOLDER_NAME = 'InvoiceVault';
 const SHEET_FILE_NAME = 'InvoiceVault Data';
-const TAB = 'Invoices';
-const HEADERS = ['id', 'product', 'brand', 'category', 'store', 'purchaseDate', 'price', 'warrantyMonths', 'serial', 'notes', 'files', 'createdAt', 'updatedAt'];
-const LAST_COL = 'M'; // 13 columns
+const SETTINGS_TAB = 'Settings';
+const COL = {
+  bills: { tab: 'Invoices', last: 'M', headers: ['id', 'product', 'brand', 'category', 'store', 'purchaseDate', 'price', 'warrantyMonths', 'serial', 'notes', 'files', 'createdAt', 'updatedAt'] },
+  docs: { tab: 'Documents', last: 'L', headers: ['id', 'docType', 'title', 'holder', 'number', 'issueDate', 'expiryDate', 'notes', 'files', 'encrypted', 'createdAt', 'updatedAt'] },
+};
 const CATEGORIES = ['Mobile & gadgets', 'Electronics', 'Home appliances', 'Kitchen', 'Furniture', 'Vehicle', 'Clothing & footwear', 'Tools', 'Other'];
-const SOON_DAYS = 30;
+// soon = days before expiry when the document counts as "expiring soon"
+const DOC_TYPES = [
+  { t: 'Aadhaar card', g: 'Identity' }, { t: 'PAN card', g: 'Identity' },
+  { t: 'Passport', g: 'Identity', exp: true, soon: 180 }, { t: 'Driving licence', g: 'Identity', exp: true, soon: 60 },
+  { t: 'Voter ID', g: 'Identity' },
+  { t: 'Vehicle RC', g: 'Vehicle', exp: true, soon: 60 }, { t: 'Vehicle insurance', g: 'Vehicle', exp: true, soon: 30 },
+  { t: 'PUC certificate', g: 'Vehicle', exp: true, soon: 15 },
+  { t: 'Health insurance', g: 'Insurance', exp: true, soon: 30 }, { t: 'Life insurance', g: 'Insurance', exp: true, soon: 30 },
+  { t: 'Other insurance', g: 'Insurance', exp: true, soon: 30 },
+  { t: 'Degree or certificate', g: 'Education' }, { t: 'Mark sheet', g: 'Education' },
+  { t: 'Property papers', g: 'Property' }, { t: 'Rent agreement', g: 'Property', exp: true, soon: 60 },
+  { t: 'Medical report', g: 'Medical' }, { t: 'Prescription', g: 'Medical' },
+  { t: 'Bank document', g: 'Finance' }, { t: 'Other', g: 'Other', exp: true, soon: 30 },
+];
+const GROUPS = ['Identity', 'Vehicle', 'Insurance', 'Education', 'Property', 'Medical', 'Finance', 'Other'];
+const SENSITIVE_GROUPS = ['Identity', 'Finance'];
+const BILL_SOON_DAYS = 30;
+const LOCK_AFTER_MS = 30000;        // lock after 30 s in the background
+const VAULT_FORGET_MS = 5 * 60000;  // forget the vault key after 5 min in the background
+const PBKDF2_ITER = 600000;
 
 const DRIVE = 'https://www.googleapis.com/drive/v3';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
@@ -357,11 +453,15 @@ const enc = encodeURIComponent;
 const DAY = 86400000;
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 const fmtDate = (d) => (d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const typeInfo = (t) => DOC_TYPES.find((d) => d.t === t) || { t, g: 'Other', exp: true, soon: 30 };
+const isImage = (f) => /^image\//.test(f.mime || '');
+const rand = (n) => crypto.getRandomValues(new Uint8Array(n));
+const b64 = (buf) => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const icon = {
   clip: '<svg class="i" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>',
   close: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   file: '<svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
-  image: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>',
   camera: '<svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
   bell: '<svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
   sheet: '<svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>',
@@ -370,6 +470,9 @@ const icon = {
   out: '<svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
   install: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',
   warn: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+  lock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  key: '<svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>',
+  finger: '<svg class="i" viewBox="0 0 24 24"><path d="M12 11v4a6 6 0 0 1-1.5 4"/><path d="M8 11a4 4 0 0 1 8 0v3"/><path d="M5 14v-3a7 7 0 0 1 14 0v2"/><path d="M16 17a10 10 0 0 1-1 4"/></svg>',
 };
 
 function parseDate(s) {
@@ -377,57 +480,67 @@ function parseDate(s) {
   const [y, m, d] = String(s).split('-').map(Number);
   return y && m && d ? new Date(y, m - 1, d) : null;
 }
-function toISO(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
+function toISO(d) { const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; }
 function today() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
 function addMonths(date, months) {
   const d = new Date(date.getFullYear(), date.getMonth() + months, 1);
-  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  d.setDate(Math.min(date.getDate(), last));
+  d.setDate(Math.min(date.getDate(), new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
   return d;
 }
 function uuid() {
   if (crypto.randomUUID) return crypto.randomUUID();
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15);
-    return (c === 'x' ? r : (r & 3) | 8).toString(16);
-  });
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = rand(1)[0] & 15; return (c === 'x' ? r : (r & 3) | 8).toString(16); });
 }
 function durationLabel(m) {
   if (!m) return 'None';
-  if (m % 12 === 0) return `${m / 12} year${m === 12 ? '' : 's'}`;
-  return `${m} month${m === 1 ? '' : 's'}`;
+  return m % 12 === 0 ? `${m / 12} year${m === 12 ? '' : 's'}` : `${m} month${m === 1 ? '' : 's'}`;
 }
+function timeLeft(days) {
+  if (days === 0) return 'Ends today';
+  if (days <= 60) return `${days} day${days === 1 ? '' : 's'} left`;
+  const months = Math.floor(days / 30.44);
+  return months >= 24 ? `${Math.floor(months / 12)} years left` : `${months} months left`;
+}
+function maskNumber(n) { const s = String(n).replace(/\s+/g, ''); return s.length <= 4 ? s : `•••• ${s.slice(-4)}`; }
 
-/* Warranty status: the heart of the app */
-function warranty(item) {
+/* Status for bills (warranty) and documents (expiry) */
+function billStatus(item) {
   const p = parseDate(item.purchaseDate);
   const m = Number(item.warrantyMonths) || 0;
-  if (!p || m <= 0) return { status: 'none', label: 'No warranty', expiry: null, days: null, pct: 0 };
+  if (!p || m <= 0) return { status: 'none', label: 'No warranty', expiry: null, days: null, pct: null, soonDays: BILL_SOON_DAYS };
   const exp = addMonths(p, m);
-  exp.setDate(exp.getDate() - 1); // 1 year from 9 Oct ends on 8 Oct
+  exp.setDate(exp.getDate() - 1);
+  return statusFrom(p, exp, BILL_SOON_DAYS);
+}
+function docStatus(d) {
+  const exp = parseDate(d.expiryDate);
+  const soon = typeInfo(d.docType).soon ?? 30;
+  if (!exp) return { status: 'none', label: 'No expiry', expiry: null, days: null, pct: null, soonDays: soon };
+  return statusFrom(parseDate(d.issueDate), exp, soon);
+}
+function statusFrom(start, exp, soonDays) {
   const t = today();
   const days = Math.round((exp - t) / DAY);
-  const pct = Math.min(100, Math.max(2, ((t - p) / (exp - p || 1)) * 100));
-  if (days < 0) return { status: 'expired', label: 'Expired', expiry: exp, days, pct: 100 };
-  if (days <= SOON_DAYS) return { status: 'soon', label: days === 0 ? 'Ends today' : `${days} day${days === 1 ? '' : 's'} left`, expiry: exp, days, pct };
-  const months = Math.floor(days / 30.44);
-  return { status: 'active', label: months >= 2 ? `${months} months left` : `${days} days left`, expiry: exp, days, pct };
+  const pct = start && exp > start ? Math.min(100, Math.max(2, ((t - start) / (exp - start)) * 100)) : null;
+  if (days < 0) return { status: 'expired', label: 'Expired', expiry: exp, days, pct: pct == null ? null : 100, soonDays };
+  return { status: days <= soonDays ? 'soon' : 'active', label: timeLeft(days), expiry: exp, days, pct, soonDays };
 }
+const statusOf = (kind, o) => (kind === 'bills' ? billStatus(o) : docStatus(o));
 
 /* ---------- State ---------- */
 const state = {
   token: null, tokenExp: 0,
-  folderId: null, spreadsheetId: null, tabId: null,
-  items: [], loaded: false,
-  filter: { q: '', status: 'all', category: 'all', sort: 'expiry' },
+  folderId: null, spreadsheetId: null, tabIds: {},
+  bills: [], docs: [], settings: {}, loaded: false,
+  view: 'bills',
+  f: {
+    bills: { q: '', chip: 'all', sel1: 'all', sort: 'expiry' },
+    docs: { q: '', chip: 'all', sel1: 'all', sort: 'expiry' },
+  },
 };
-let tokenClient = null;
-let pendingAuth = null;
-let reauthPromise = null;
-let installPrompt = null;
+const vault = { key: null };
+const blobCache = new Map();
+let tokenClient = null, pendingAuth = null, reauthPromise = null, installPrompt = null;
 
 /* ---------- Auth (Google Identity Services, token model) ---------- */
 function initGis() {
@@ -435,46 +548,36 @@ function initGis() {
     let tries = 0;
     (function wait() {
       if (window.google?.accounts?.oauth2) {
-        tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID, scope: SCOPE, callback: onToken, error_callback: onTokenError,
-        });
+        tokenClient = google.accounts.oauth2.initTokenClient({ client_id: CLIENT_ID, scope: SCOPE, callback: onToken, error_callback: onTokenError });
         resolve();
-      } else if (++tries > 100) {
-        reject(new Error('Google sign-in could not load. Check your internet connection and reload.'));
-      } else setTimeout(wait, 100);
+      } else if (++tries > 100) reject(new Error('Google sign-in could not load. Check your internet connection and reload.'));
+      else setTimeout(wait, 100);
     })();
   });
 }
-// Must be called directly inside a click handler, or the browser blocks the pop-up.
+// Must run directly inside a click handler, or the browser blocks the pop-up.
 function requestToken(silent) {
   return new Promise((resolve, reject) => {
     pendingAuth = { resolve, reject };
-    try { tokenClient.requestAccessToken(silent ? { prompt: '' } : {}); }
-    catch (e) { pendingAuth = null; reject(e); }
+    try { tokenClient.requestAccessToken(silent ? { prompt: '' } : {}); } catch (e) { pendingAuth = null; reject(e); }
   });
 }
 function onToken(resp) {
   const p = pendingAuth; pendingAuth = null;
   if (!p) return;
   if (resp.error) return p.reject(new Error(resp.error_description || resp.error));
-  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) {
-    return p.reject(new Error('Tick the Google Drive permission so InvoiceVault can save your files.'));
-  }
+  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) return p.reject(new Error('Tick the Google Drive permission so InvoiceVault can save your files.'));
   setToken(resp.access_token, Number(resp.expires_in) || 3600);
   p.resolve();
 }
 function onTokenError(err) {
   const p = pendingAuth; pendingAuth = null;
   if (!p) return;
-  const msg = err?.type === 'popup_closed' ? 'Sign-in was cancelled.'
-    : err?.type === 'popup_failed_to_open' ? 'The sign-in pop-up was blocked. Allow pop-ups for this site and try again.'
-    : 'Sign-in failed. Try again.';
-  p.reject(new Error(msg));
+  p.reject(new Error(err?.type === 'popup_closed' ? 'Sign-in was cancelled.'
+    : err?.type === 'popup_failed_to_open' ? 'The sign-in pop-up was blocked. Allow pop-ups for this site and try again.' : 'Sign-in failed. Try again.'));
 }
 function setToken(token, expiresIn) {
-  state.token = token;
-  state.tokenExp = Date.now() + (expiresIn - 60) * 1000;
-  // sessionStorage (not localStorage): the token is gone when the app is closed.
+  state.token = token; state.tokenExp = Date.now() + (expiresIn - 60) * 1000;
   try { sessionStorage.setItem('iv.token', JSON.stringify({ token, exp: state.tokenExp })); } catch {}
 }
 function clearToken() {
@@ -484,11 +587,8 @@ function clearToken() {
 function reauth() {
   if (reauthPromise) return reauthPromise;
   reauthPromise = new Promise((resolve, reject) => {
-    const box = $('#reauth');
-    box.hidden = false;
-    $('#reauthGo').onclick = () => {
-      requestToken(true).then(() => { box.hidden = true; resolve(); }).catch((e) => toast(e.message, true));
-    };
+    const box = $('#reauth'); box.hidden = false;
+    $('#reauthGo').onclick = () => requestToken(true).then(() => { box.hidden = true; resolve(); }).catch((e) => toast(e.message, true));
     $('#reauthCancel').onclick = () => { box.hidden = true; reject(new Error('Signed out.')); signOut(); };
   }).finally(() => { reauthPromise = null; });
   return reauthPromise;
@@ -509,9 +609,189 @@ async function api(url, opts = {}, retry = true) {
     try { const j = await res.json(); if (j.error?.message) msg = j.error.message; } catch {}
     throw new Error(msg);
   }
+  if (opts.as === 'buffer') return res.arrayBuffer();
   if (res.status === 204) return null;
-  const ct = res.headers.get('content-type') || '';
-  return ct.includes('json') ? res.json() : res.text();
+  return (res.headers.get('content-type') || '').includes('json') ? res.json() : res.text();
+}
+
+/* ---------- Encryption (AES-256-GCM, key from your vault password) ---------- */
+async function deriveKey(password, salt) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: PBKDF2_ITER, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function encBytes(key, data) {
+  const iv = rand(12); // fresh random IV for every encryption
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12);
+  return out;
+}
+async function decBytes(key, data) {
+  const u = new Uint8Array(data);
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv: u.slice(0, 12) }, key, u.slice(12));
+}
+async function encText(key, s) { return 'enc:' + b64(await encBytes(key, new TextEncoder().encode(s))); }
+async function decText(key, s) { return new TextDecoder().decode(await decBytes(key, unb64(String(s).slice(4)))); }
+const vaultExists = () => !!(state.settings.vaultSalt && state.settings.vaultCheck);
+
+function ensureVaultKey() {
+  if (vault.key) return Promise.resolve(vault.key);
+  return vaultExists() ? askVaultUnlock() : askVaultSetup();
+}
+function askVaultUnlock() {
+  return new Promise((resolve, reject) => {
+    openDialog(`<h3>Unlock documents</h3>
+      <p>Enter your vault password to see encrypted documents.</p>
+      <form id="vf"><input class="inp" type="password" id="vp" autocomplete="current-password" placeholder="Vault password" />
+      <div class="two"><button type="button" class="btn" id="vc">Cancel</button><button class="btn primary" id="vo">Unlock</button></div></form>`);
+    $('#vp').focus();
+    $('#vc').onclick = () => { closeDialog(); reject(new Error('Documents stay locked.')); };
+    $('#vf').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = $('#vo'); btn.disabled = true; btn.textContent = 'Checking';
+      try {
+        const key = await deriveKey($('#vp').value, unb64(state.settings.vaultSalt));
+        if (await decText(key, state.settings.vaultCheck) !== 'invoicevault-ok') throw new Error();
+        vault.key = key; closeDialog(); resolve(key);
+      } catch {
+        toast('Wrong vault password.', true); btn.disabled = false; btn.textContent = 'Unlock'; $('#vp').select();
+      }
+    };
+  });
+}
+function askVaultSetup() {
+  return new Promise((resolve, reject) => {
+    openDialog(`<h3>Create a vault password</h3>
+      <p>Encrypted documents are scrambled on your phone before upload. Even Google can't read them without this password.</p>
+      <form id="vs">
+        <input class="inp" type="password" id="v1" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" />
+        <input class="inp" type="password" id="v2" autocomplete="new-password" placeholder="Type it again" />
+        <label class="check"><input type="checkbox" id="vok" /><span><b>I understand</b><small>If I forget this password, my encrypted documents can't be recovered by anyone.</small></span></label>
+        <div class="two"><button type="button" class="btn" id="vc">Cancel</button><button class="btn primary" id="vo">Create</button></div>
+      </form>`);
+    $('#v1').focus();
+    $('#vc').onclick = () => { closeDialog(); reject(new Error('Vault password not created.')); };
+    $('#vs').onsubmit = async (e) => {
+      e.preventDefault();
+      const p1 = $('#v1').value, p2 = $('#v2').value;
+      if (p1.length < 8) return toast('Use at least 8 characters.', true);
+      if (p1 !== p2) return toast('The two passwords don\'t match.', true);
+      if (!$('#vok').checked) return toast('Tick the box to confirm you understand.', true);
+      const btn = $('#vo'); btn.disabled = true; btn.textContent = 'Creating';
+      try {
+        const salt = rand(16);
+        const key = await deriveKey(p1, salt);
+        state.settings.vaultSalt = b64(salt);
+        state.settings.vaultCheck = await encText(key, 'invoicevault-ok');
+        await saveSettings();
+        vault.key = key; closeDialog(); toast('Vault password created'); resolve(key);
+      } catch (err) {
+        delete state.settings.vaultSalt; delete state.settings.vaultCheck;
+        toast(err.message, true); btn.disabled = false; btn.textContent = 'Create';
+      }
+    };
+  });
+}
+function lockVault() { vault.key = null; clearBlobs(); }
+
+/* ---------- App lock (fingerprint / screen lock via WebAuthn, or PIN) ---------- */
+const LOCK_KEY = 'iv.lock';
+function getLock() { try { return JSON.parse(localStorage.getItem(LOCK_KEY) || 'null'); } catch { return null; } }
+function setLock(v) { try { v ? localStorage.setItem(LOCK_KEY, JSON.stringify(v)) : localStorage.removeItem(LOCK_KEY); } catch {} }
+async function bioAvailable() {
+  try { return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); } catch { return false; }
+}
+async function bioRegister() {
+  const cred = await navigator.credentials.create({ publicKey: {
+    challenge: rand(32),
+    rp: { name: 'InvoiceVault', id: location.hostname },
+    user: { id: rand(16), name: 'invoicevault-lock', displayName: 'InvoiceVault app lock' },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
+    timeout: 60000, attestation: 'none',
+  } });
+  return b64(cred.rawId);
+}
+async function bioVerify(credId) {
+  await navigator.credentials.get({ publicKey: {
+    challenge: rand(32), allowCredentials: [{ type: 'public-key', id: unb64(credId) }], userVerification: 'required', timeout: 60000,
+  } });
+}
+async function pinHash(pin, saltB64) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  return b64(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: unb64(saltB64), iterations: 150000, hash: 'SHA-256' }, base, 256));
+}
+
+let lockPromise = null, hiddenAt = 0, pinFails = 0, pinBlockedUntil = 0;
+function showLock() {
+  const cfg = getLock();
+  if (!cfg) return Promise.resolve();
+  if (lockPromise) return lockPromise;
+  closeSheet(); closeViewer(); lockVault();
+  lockPromise = new Promise((resolve) => {
+    const done = () => { $('#lock').hidden = true; lockPromise = null; resolve(); };
+    const body = $('#lockBody');
+    const resetBtn = '<button class="linkbtn" id="lkReset">Forgot? Remove the lock and sign in again</button>';
+    if (cfg.type === 'bio') {
+      body.innerHTML = `<p>Use your fingerprint, face or screen lock.</p><button class="btn primary" id="lkBio">${icon.finger} Unlock</button>${resetBtn}`;
+      $('#lkBio').onclick = async () => {
+        try { await bioVerify(cfg.credId); done(); } catch { toast('Unlock was cancelled. Try again.', true); }
+      };
+    } else {
+      body.innerHTML = `<p>Enter your PIN.</p><form id="lkForm"><input class="pin" id="lkPin" type="password" inputmode="numeric" autocomplete="off" maxlength="8" aria-label="PIN" /><button class="btn primary">Unlock</button></form>${resetBtn}`;
+      setTimeout(() => $('#lkPin')?.focus(), 50);
+      $('#lkForm').onsubmit = async (e) => {
+        e.preventDefault();
+        if (Date.now() < pinBlockedUntil) return toast(`Too many tries. Wait ${Math.ceil((pinBlockedUntil - Date.now()) / 1000)} seconds.`, true);
+        const ok = (await pinHash($('#lkPin').value, cfg.salt)) === cfg.hash;
+        if (ok) { pinFails = 0; done(); return; }
+        $('#lkPin').value = '';
+        if (++pinFails >= 5) { pinBlockedUntil = Date.now() + 30000; pinFails = 0; toast('Too many wrong PINs. Wait 30 seconds.', true); }
+        else toast('Wrong PIN.', true);
+      };
+    }
+    $('#lkReset').onclick = () => {
+      if (!confirm('Remove the app lock on this phone? You will need to sign in with Google again.')) return;
+      setLock(null); signOut(); done();
+    };
+    $('#lock').hidden = false;
+  });
+  return lockPromise;
+}
+function openLockSettings() {
+  const cfg = getLock();
+  const status = !cfg ? 'Off' : cfg.type === 'bio' ? 'On, fingerprint or screen lock' : 'On, PIN';
+  openSheet(`${head('App lock')}
+    <p class="sheet-sub">${status}. The lock asks for your fingerprint or PIN when you open the app, and after 30 seconds in the background. It's set separately on each phone.</p>
+    <div class="menu">
+      <button id="lsBio" hidden>${icon.finger} Use fingerprint or screen lock</button>
+      <button id="lsPin">${icon.key} ${cfg?.type === 'pin' ? 'Change PIN' : 'Use a PIN'}</button>
+      ${cfg ? `<button id="lsOff">${icon.close} Turn off app lock</button>` : ''}
+    </div>`);
+  bioAvailable().then((ok) => { const b = $('#lsBio'); if (b && ok) b.hidden = false; });
+  $('#lsBio').onclick = async () => {
+    try { const credId = await bioRegister(); setLock({ type: 'bio', credId }); closeSheet(); toast('App lock is on'); }
+    catch { toast('Couldn\'t set up fingerprint lock. Try a PIN instead.', true); }
+  };
+  $('#lsPin').onclick = () => { closeSheet(); setupPin(); };
+  const off = $('#lsOff');
+  if (off) off.onclick = () => { setLock(null); closeSheet(); toast('App lock is off'); };
+}
+function setupPin() {
+  openDialog(`<h3>Choose a PIN</h3><p>4 to 8 digits. You'll enter it when you open InvoiceVault.</p>
+    <form id="pf"><input class="inp" id="p1" type="password" inputmode="numeric" maxlength="8" placeholder="New PIN" autocomplete="off" />
+    <input class="inp" id="p2" type="password" inputmode="numeric" maxlength="8" placeholder="Type it again" autocomplete="off" />
+    <div class="two"><button type="button" class="btn" id="pc">Cancel</button><button class="btn primary">Turn on</button></div></form>`);
+  $('#p1').focus();
+  $('#pc').onclick = closeDialog;
+  $('#pf').onsubmit = async (e) => {
+    e.preventDefault();
+    const a = $('#p1').value, b = $('#p2').value;
+    if (!/^\d{4,8}$/.test(a)) return toast('Use 4 to 8 digits.', true);
+    if (a !== b) return toast('The PINs don\'t match.', true);
+    const salt = b64(rand(16));
+    setLock({ type: 'pin', salt, hash: await pinHash(a, salt) });
+    closeDialog(); toast('App lock is on');
+  };
 }
 
 /* ---------- Storage layer: Drive folder + Google Sheet ---------- */
@@ -519,62 +799,70 @@ async function ensureFolder() {
   const q = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
   if (r.files?.length) return r.files[0].id;
-  const f = await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
-  return f.id;
+  return (await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } })).id;
 }
 async function ensureSheet(folderId) {
   const q = `name='${SHEET_FILE_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '${folderId}' in parents and trashed=false`;
   const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
-  let id = r.files?.[0]?.id;
-  let created = false;
+  let id = r.files?.[0]?.id, created = false;
   if (!id) {
-    const f = await api(`${DRIVE}/files?fields=id`, {
-      method: 'POST', json: { name: SHEET_FILE_NAME, mimeType: 'application/vnd.google-apps.spreadsheet', parents: [folderId] },
-    });
-    id = f.id; created = true;
-  }
-  const meta = await api(`${SHEETS}/${id}?fields=sheets.properties(sheetId,title)`);
-  let tab = meta.sheets.find((s) => s.properties.title === TAB)?.properties;
-  if (!tab) {
-    tab = meta.sheets[0].properties;
-    await api(`${SHEETS}/${id}:batchUpdate`, {
-      method: 'POST',
-      json: { requests: [{ updateSheetProperties: {
-        properties: { sheetId: tab.sheetId, title: TAB, gridProperties: { frozenRowCount: 1 } },
-        fields: 'title,gridProperties.frozenRowCount',
-      } }] },
-    });
+    id = (await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: SHEET_FILE_NAME, mimeType: 'application/vnd.google-apps.spreadsheet', parents: [folderId] } })).id;
     created = true;
   }
-  if (created) {
-    await api(`${SHEETS}/${id}/values/${enc(`${TAB}!A1:${LAST_COL}1`)}?valueInputOption=RAW`, { method: 'PUT', json: { values: [HEADERS] } });
+  const metaUrl = `${SHEETS}/${id}?fields=sheets.properties(sheetId,title)`;
+  let meta = await api(metaUrl);
+  const have = new Set(meta.sheets.map((s) => s.properties.title));
+  const needed = [[COL.bills.tab, COL.bills.headers, COL.bills.last], [COL.docs.tab, COL.docs.headers, COL.docs.last], [SETTINGS_TAB, ['key', 'value'], 'B']];
+  const requests = [], newTabs = [];
+  let renameFirst = created && !have.has(COL.bills.tab);
+  for (const [title, headers, last] of needed) {
+    if (have.has(title)) continue;
+    if (renameFirst) {
+      requests.push({ updateSheetProperties: { properties: { sheetId: meta.sheets[0].properties.sheetId, title, gridProperties: { frozenRowCount: 1 } }, fields: 'title,gridProperties.frozenRowCount' } });
+      renameFirst = false;
+    } else requests.push({ addSheet: { properties: { title, gridProperties: { frozenRowCount: 1 } } } });
+    newTabs.push({ range: `${title}!A1:${last}1`, values: [headers] });
   }
-  return { id, tabId: tab.sheetId };
+  if (requests.length) {
+    await api(`${SHEETS}/${id}:batchUpdate`, { method: 'POST', json: { requests } });
+    await api(`${SHEETS}/${id}/values:batchUpdate`, { method: 'POST', json: { valueInputOption: 'RAW', data: newTabs } });
+    meta = await api(metaUrl);
+  }
+  return { id, tabIds: Object.fromEntries(meta.sheets.map((s) => [s.properties.title, s.properties.sheetId])) };
 }
-function rowToItem(row) {
-  const it = {};
-  HEADERS.forEach((h, i) => { it[h] = row[i] ?? ''; });
-  it.price = it.price === '' ? null : Number(it.price);
-  it.warrantyMonths = Number(it.warrantyMonths) || 0;
-  try { it.files = JSON.parse(it.files || '[]'); } catch { it.files = []; }
-  return it;
+const vurl = (range) => `${SHEETS}/${state.spreadsheetId}/values/${enc(range)}`;
+function rowToObj(kind, row) {
+  const o = {};
+  COL[kind].headers.forEach((h, i) => { o[h] = row[i] ?? ''; });
+  try { o.files = JSON.parse(o.files || '[]'); } catch { o.files = []; }
+  if (kind === 'bills') { o.price = o.price === '' ? null : Number(o.price); o.warrantyMonths = Number(o.warrantyMonths) || 0; }
+  else o.encrypted = o.encrypted === '1' || o.encrypted === 'TRUE' || o.encrypted === true;
+  return o;
 }
-function itemToRow(it) {
-  return HEADERS.map((h) => (h === 'files' ? JSON.stringify(it.files || []) : it[h] == null ? '' : String(it[h])));
+function objToRow(kind, o) {
+  return COL[kind].headers.map((h) => (h === 'files' ? JSON.stringify(o.files || []) : h === 'encrypted' ? (o.encrypted ? '1' : '') : o[h] == null ? '' : String(o[h])));
 }
-async function loadItems() {
-  const r = await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A2:${LAST_COL}`)}`);
-  state.items = (r.values || []).filter((row) => row[0]).map(rowToItem);
-  state.loaded = true;
+async function loadKind(kind) {
+  const c = COL[kind];
+  const r = await api(vurl(`${c.tab}!A2:${c.last}`));
+  state[kind] = (r.values || []).filter((x) => x[0]).map((x) => rowToObj(kind, x));
 }
+async function loadSettings() {
+  const r = await api(vurl(`${SETTINGS_TAB}!A2:B`));
+  state.settings = Object.fromEntries((r.values || []).filter((x) => x[0]).map((x) => [x[0], x[1] ?? '']));
+}
+async function saveSettings() {
+  const rows = Object.entries(state.settings);
+  await api(`${vurl(`${SETTINGS_TAB}!A2:B${rows.length + 1}`)}?valueInputOption=RAW`, { method: 'PUT', json: { values: rows } });
+}
+async function loadAll() { await Promise.all([loadKind('bills'), loadKind('docs'), loadSettings()]); state.loaded = true; }
 // Row positions shift when rows are deleted, so always look up the current row by id.
-async function findRow(id) {
-  const r = await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A:A`)}`);
+async function findRow(kind, id) {
+  const r = await api(vurl(`${COL[kind].tab}!A:A`));
   const i = (r.values || []).map((v) => v[0]).indexOf(id);
   return i < 1 ? null : i + 1;
 }
 async function maybeCompress(file) {
-  // Phone photos are often 4-8 MB. Shrink big JPEG/PNG/WebP so uploads are fast.
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size < 1.5e6) return file;
   try {
     const url = URL.createObjectURL(file);
@@ -582,248 +870,333 @@ async function maybeCompress(file) {
     const scale = Math.min(1, 2200 / Math.max(img.naturalWidth, img.naturalHeight));
     const c = document.createElement('canvas');
     c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-    ctx.drawImage(img, 0, 0, c.width, c.height);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
     URL.revokeObjectURL(url);
     const out = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85));
     return out && out.size < file.size ? new File([out], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
   } catch { return file; }
 }
-async function uploadFile(file, data) {
+async function uploadFile(file, baseName, encrypt) {
   const f = await maybeCompress(file);
-  const base = `${data.purchaseDate} ${data.product}`.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80);
-  const name = `${base} - ${f.name}`;
+  const mime = f.type || 'application/octet-stream';
+  let blob = f, name = `${baseName.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80)} - ${f.name}`;
+  if (encrypt) {
+    if (!vault.key) throw new Error('Unlock your vault first.');
+    blob = new Blob([await encBytes(vault.key, await f.arrayBuffer())], { type: 'application/octet-stream' });
+    name = `vault-${uuid().slice(0, 8)}.enc`; // no hint of what's inside
+  }
   const form = new FormData();
-  form.append('metadata', new Blob([JSON.stringify({ name, parents: [state.folderId] })], { type: 'application/json' }));
-  form.append('file', f, name);
-  const r = await api(`${UPLOAD}?uploadType=multipart&fields=id,name,mimeType,webViewLink`, { method: 'POST', body: form });
-  return { id: r.id, name: r.name, mime: r.mimeType, link: r.webViewLink };
+  form.append('metadata', new Blob([JSON.stringify({ name, parents: [state.folderId], mimeType: blob.type || mime })], { type: 'application/json' }));
+  form.append('file', blob, name);
+  const r = await api(`${UPLOAD}?uploadType=multipart&fields=id,webViewLink`, { method: 'POST', body: form });
+  return { id: r.id, name: encrypt ? f.name : name, mime, link: encrypt ? '' : r.webViewLink, enc: !!encrypt };
 }
-function trashFile(id) {
-  return api(`${DRIVE}/files/${id}?fields=id`, { method: 'PATCH', json: { trashed: true } });
-}
-async function saveItem(existing, data, newFiles, removeIds, onProgress) {
+function trashFile(id) { return api(`${DRIVE}/files/${id}?fields=id`, { method: 'PATCH', json: { trashed: true } }); }
+
+async function saveObj(kind, existing, data, newFiles, removeIds, opts, onProgress) {
   const uploaded = [];
   try {
     for (let i = 0; i < newFiles.length; i++) {
       onProgress(`Uploading ${i + 1} of ${newFiles.length}`);
-      uploaded.push(await uploadFile(newFiles[i], data));
+      uploaded.push(await uploadFile(newFiles[i], opts.baseName, opts.encrypt));
     }
     onProgress('Saving');
     const now = new Date().toISOString();
+    const c = COL[kind];
     if (existing) {
-      const files = existing.files.filter((f) => !removeIds.has(f.id)).concat(uploaded);
-      const item = { ...existing, ...data, files, updatedAt: now };
-      const row = await findRow(existing.id);
-      if (!row) throw new Error('This bill was deleted elsewhere. Refresh to see the latest list.');
-      await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A${row}:${LAST_COL}${row}`)}?valueInputOption=RAW`, {
-        method: 'PUT', json: { values: [itemToRow(item)] },
-      });
+      const o = { ...existing, ...data, files: existing.files.filter((f) => !removeIds.has(f.id)).concat(uploaded), updatedAt: now };
+      const row = await findRow(kind, existing.id);
+      if (!row) throw new Error('This item was deleted elsewhere. Refresh to see the latest list.');
+      await api(`${vurl(`${c.tab}!A${row}:${c.last}${row}`)}?valueInputOption=RAW`, { method: 'PUT', json: { values: [objToRow(kind, o)] } });
       await Promise.allSettled([...removeIds].map(trashFile));
     } else {
-      const item = { id: uuid(), ...data, files: uploaded, createdAt: now, updatedAt: now };
-      await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A:${LAST_COL}`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
-        method: 'POST', json: { values: [itemToRow(item)] },
-      });
+      const o = { id: uuid(), ...data, files: uploaded, createdAt: now, updatedAt: now };
+      await api(`${vurl(`${c.tab}!A:${c.last}`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, { method: 'POST', json: { values: [objToRow(kind, o)] } });
     }
   } catch (err) {
     // Compensating action: don't leave orphan files in Drive if the sheet write failed.
     await Promise.allSettled(uploaded.map((f) => trashFile(f.id)));
     throw err;
   }
-  await loadItems();
+  await loadKind(kind);
 }
-async function deleteItem(it) {
-  const row = await findRow(it.id);
+async function deleteObj(kind, o) {
+  const row = await findRow(kind, o.id);
   if (row) {
-    await api(`${SHEETS}/${state.spreadsheetId}:batchUpdate`, {
-      method: 'POST',
-      json: { requests: [{ deleteDimension: { range: { sheetId: state.tabId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }] },
-    });
+    await api(`${SHEETS}/${state.spreadsheetId}:batchUpdate`, { method: 'POST', json: { requests: [{ deleteDimension: {
+      range: { sheetId: state.tabIds[COL[kind].tab], dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }] } });
   }
-  await Promise.allSettled(it.files.map((f) => trashFile(f.id)));
-  await loadItems();
+  await Promise.allSettled(o.files.map((f) => trashFile(f.id)));
+  await loadKind(kind);
 }
+async function fileURL(f) {
+  if (blobCache.has(f.id)) return blobCache.get(f.id);
+  let data = await api(`${DRIVE}/files/${f.id}?alt=media`, { as: 'buffer' });
+  if (f.enc) {
+    if (!vault.key) throw new Error('Unlock your vault first.');
+    data = await decBytes(vault.key, data);
+  }
+  const url = URL.createObjectURL(new Blob([data], { type: f.mime || 'application/octet-stream' }));
+  blobCache.set(f.id, url);
+  return url;
+}
+function clearBlobs() { blobCache.forEach((u) => URL.revokeObjectURL(u)); blobCache.clear(); }
 
-/* ---------- Rendering ---------- */
-function show(id) {
-  for (const s of ['setup', 'signin', 'app']) $('#' + s).hidden = s !== id;
+/* ---------- UI primitives ---------- */
+function show(id) { for (const s of ['setup', 'signin', 'app']) $('#' + s).hidden = s !== id; }
+function openSheet(html) {
+  $('#sheet').innerHTML = html; $('#backdrop').hidden = false;
+  document.body.style.overflow = 'hidden'; $('#sheet').scrollTop = 0;
+}
+function closeSheet() { $('#backdrop').hidden = true; $('#sheet').innerHTML = ''; document.body.style.overflow = ''; }
+function openDialog(html) { $('#dlgBox').innerHTML = html; $('#dlg').hidden = false; }
+function closeDialog() { $('#dlg').hidden = true; $('#dlgBox').innerHTML = ''; }
+function openViewer(url) { $('#viewerImg').src = url; $('#viewer').hidden = false; }
+function closeViewer() { $('#viewer').hidden = true; $('#viewerImg').removeAttribute('src'); }
+const head = (title) => `<div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">${icon.close}</button></div>`;
+let toastTimer;
+function toast(msg, isError = false) {
+  const t = $('#toast');
+  t.textContent = msg; t.className = 'toast' + (isError ? ' error' : ''); t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 5000 : 2500);
 }
 function fileHref(f) { return f.link || `https://drive.google.com/file/d/${f.id}/view`; }
-
-function renderSummary() {
-  const el = $('#summary');
-  if (!state.loaded) { el.innerHTML = '<h2>Loading your bills</h2><p>Opening your InvoiceVault folder in Google Drive</p>'; return; }
-  const items = state.items;
-  const ws = items.map(warranty);
-  const active = ws.filter((w) => w.status === 'active' || w.status === 'soon').length;
-  const soon = ws.filter((w) => w.status === 'soon').length;
-  const spent = items.reduce((s, it) => s + (it.price || 0), 0);
-  if (!items.length) { el.innerHTML = '<h2>Nothing saved yet</h2><p>Add your first invoice or warranty slip to get started.</p>'; return; }
-  el.innerHTML = `
-    <h2><span class="num">${items.length}</span> bill${items.length === 1 ? '' : 's'}, <span class="num">${active}</span> under warranty</h2>
-    <p>Total recorded spend <span class="num">${inr.format(spent)}</span></p>
-    ${soon ? `<button class="alert" id="soonAlert">${icon.warn}<span><b>${soon} warrant${soon === 1 ? 'y ends' : 'ies end'}</b> within ${SOON_DAYS} days. Check ${soon === 1 ? 'it' : 'them'} before claims close.</span></button>` : ''}`;
-  const a = $('#soonAlert');
-  if (a) a.onclick = () => { state.filter.status = 'soon'; renderAll(); };
-}
-
-function renderChips() {
-  const counts = { all: state.items.length, soon: 0, active: 0, expired: 0, none: 0 };
-  state.items.forEach((it) => {
-    const s = warranty(it).status;
-    counts[s]++;
-    if (s === 'soon') counts.active++;
-  });
-  const chips = [['all', 'All'], ['soon', 'Ending soon'], ['active', 'Under warranty'], ['expired', 'Expired'], ['none', 'No warranty']];
-  $('#chips').innerHTML = chips.map(([k, l]) =>
-    `<button class="chip" data-status="${k}" aria-pressed="${state.filter.status === k}">${l}<span class="count num">${counts[k]}</span></button>`).join('');
-  const cats = [...new Set(state.items.map((i) => i.category).filter(Boolean))].sort();
-  if (state.filter.category !== 'all' && !cats.includes(state.filter.category)) state.filter.category = 'all';
-  $('#cat').innerHTML = `<option value="all">All categories</option>` +
-    cats.map((c) => `<option value="${esc(c)}" ${c === state.filter.category ? 'selected' : ''}>${esc(c)}</option>`).join('');
-  $('#sort').value = state.filter.sort;
-}
-
-function visibleItems() {
-  const { q, status, category, sort } = state.filter;
-  const needle = q.trim().toLowerCase();
-  let arr = state.items.map((it) => ({ it, w: warranty(it) }));
-  if (needle) arr = arr.filter(({ it }) => [it.product, it.brand, it.store, it.serial, it.notes, it.category].join(' ').toLowerCase().includes(needle));
-  if (status === 'active') arr = arr.filter(({ w }) => w.status === 'active' || w.status === 'soon');
-  else if (status !== 'all') arr = arr.filter(({ w }) => w.status === status);
-  if (category !== 'all') arr = arr.filter(({ it }) => it.category === category);
-  const rank = { soon: 0, active: 1, expired: 2, none: 3 };
-  const sorters = {
-    expiry: (a, b) => rank[a.w.status] - rank[b.w.status] ||
-      (a.w.status === 'expired' ? b.w.days - a.w.days : (a.w.days ?? 0) - (b.w.days ?? 0)),
-    newest: (a, b) => (b.it.purchaseDate || '').localeCompare(a.it.purchaseDate || ''),
-    oldest: (a, b) => (a.it.purchaseDate || '').localeCompare(b.it.purchaseDate || ''),
-    price: (a, b) => (b.it.price || 0) - (a.it.price || 0),
-    name: (a, b) => a.it.product.localeCompare(b.it.product),
-  };
-  return arr.sort(sorters[sort] || sorters.expiry);
-}
+function downloadURL(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
 
 function lifeBar(w) {
-  if (w.status === 'none') return `<div class="life s-none"><div class="life-meta"><b>No warranty</b></div></div>`;
+  if (w.status === 'none') return `<div class="life s-none"><div class="life-meta"><b>${esc(w.label)}</b></div></div>`;
   const right = w.status === 'expired' ? `Ended ${fmtDate(w.expiry)}` : `Until ${fmtDate(w.expiry)}`;
-  return `<div class="life s-${w.status}">
-    <div class="life-track" role="img" aria-label="Warranty ${Math.round(w.pct)}% used"><div class="life-fill" style="width:${w.pct.toFixed(1)}%"></div></div>
-    <div class="life-meta"><b>${esc(w.label)}</b><span>${right}</span></div>
-  </div>`;
+  const track = w.pct == null ? '' : `<div class="life-track" role="img" aria-label="${Math.round(w.pct)}% of validity used"><div class="life-fill" style="width:${w.pct.toFixed(1)}%"></div></div>`;
+  return `<div class="life s-${w.status}">${track}<div class="life-meta"><b>${esc(w.label)}</b><span>${right}</span></div></div>`;
+}
+function calendarLink(title, expiry, daysBefore, details) {
+  let d = new Date(expiry); d.setDate(d.getDate() - Math.min(daysBefore, 180));
+  if (d < today()) d = today();
+  const e = new Date(d); e.setDate(e.getDate() + 1);
+  const f = (x) => toISO(x).replace(/-/g, '');
+  return 'https://calendar.google.com/calendar/render?' + qs({ action: 'TEMPLATE', text: title, dates: `${f(d)}/${f(e)}`, details });
 }
 
+/* Files: previews for images, links for PDFs, decrypt on demand */
+function filesBlock(files) {
+  if (!files.length) return '<p class="hint">No files attached. Use Edit to add them.</p>';
+  return `<div class="previews">${files.map((f, i) => {
+    if (isImage(f)) return `<button class="preview" data-fi="${i}" aria-label="View ${esc(f.name)}"><span class="ph">${f.enc && !vault.key ? `${icon.lock} Locked` : 'Loading'}</span></button>`;
+    if (!f.enc) return `<a class="file-link" href="${esc(fileHref(f))}" target="_blank" rel="noopener">${icon.file}<span>${esc(f.name)}</span></a>`;
+    return `<button class="file-link" data-fi="${i}">${icon.file}<span>${esc(f.name)}</span>${vault.key ? '' : icon.lock}</button>`;
+  }).join('')}</div>`;
+}
+function mountFiles(files, onUnlocked) {
+  const box = $('#sheet .previews');
+  if (!box) return;
+  box.onclick = async (e) => {
+    const b = e.target.closest('[data-fi]'); if (!b) return;
+    const f = files[Number(b.dataset.fi)];
+    if (f.enc && !vault.key) {
+      try { await ensureVaultKey(); } catch (err) { return toast(err.message, true); }
+      return onUnlocked ? onUnlocked() : mountFiles(files);
+    }
+    try {
+      const url = await fileURL(f);
+      isImage(f) ? openViewer(url) : downloadURL(url, f.name);
+    } catch (err) { toast(err.message, true); }
+  };
+  files.forEach((f, i) => {
+    if (!isImage(f) || (f.enc && !vault.key)) return;
+    fileURL(f).then((url) => {
+      const b = box.querySelector(`[data-fi="${i}"]`);
+      if (b && document.contains(b)) b.innerHTML = `<img src="${url}" alt="${esc(f.name)}" />`;
+    }).catch(() => {
+      const b = box.querySelector(`[data-fi="${i}"]`);
+      if (b) b.innerHTML = '<span class="ph">Couldn\'t load</span>';
+    });
+  });
+}
+function filePickerBlock(existingFiles, label, hint) {
+  return `<div class="field"><span>${label}</span>
+    ${existingFiles.length ? `<ul class="files" id="oldFiles">${existingFiles.map((f) => `<li data-fid="${esc(f.id)}"><span class="name">${esc(f.name)}</span><button type="button">Remove</button></li>`).join('')}</ul>` : ''}
+    <label class="picker"><input type="file" id="fileInput" multiple accept="image/*,application/pdf" hidden />${icon.camera}<span><b>Add photos or PDFs</b><small>${hint}</small></span></label>
+    <ul class="files" id="newFiles"></ul></div>`;
+}
+function wireFilePicker(pending, removeIds) {
+  const renderNew = () => {
+    $('#newFiles').innerHTML = pending.map((f, i) => `<li><span class="name">${esc(f.name)}</span><span class="hint num">${(f.size / 1e6).toFixed(1)} MB</span><button type="button" data-i="${i}">Remove</button></li>`).join('');
+  };
+  $('#fileInput').onchange = (e) => {
+    for (const f of e.target.files) {
+      if (f.size > 25e6) { toast(`${f.name} is over 25 MB. Choose a smaller file.`, true); continue; }
+      pending.push(f);
+    }
+    e.target.value = ''; renderNew();
+  };
+  $('#newFiles').onclick = (e) => { const b = e.target.closest('button[data-i]'); if (b) { pending.splice(Number(b.dataset.i), 1); renderNew(); } };
+  const old = $('#oldFiles');
+  if (old) old.onclick = (e) => {
+    const li = e.target.closest('li'); if (!li || e.target.tagName !== 'BUTTON') return;
+    const id = li.dataset.fid;
+    if (removeIds.has(id)) { removeIds.delete(id); li.classList.remove('removed'); e.target.textContent = 'Remove'; }
+    else { removeIds.add(id); li.classList.add('removed'); e.target.textContent = 'Undo'; }
+  };
+}
+
+/* ---------- List rendering (both sections) ---------- */
+function renderAll() { renderTabs(); renderSummary(); renderControls(); renderList(); }
+function renderTabs() {
+  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.view === state.view)));
+  $('#dotBills').hidden = !state.bills.some((b) => billStatus(b).status === 'soon');
+  $('#dotDocs').hidden = !state.docs.some((d) => docStatus(d).status === 'soon');
+  $('#addLabel').textContent = state.view === 'bills' ? 'Add bill' : 'Add document';
+}
+function renderSummary() {
+  const el = $('#summary');
+  if (!state.loaded) { el.innerHTML = '<h2>Loading your vault</h2><p>Opening your InvoiceVault folder in Google Drive</p>'; return; }
+  if (state.view === 'bills') {
+    const items = state.bills, ws = items.map(billStatus);
+    if (!items.length) { el.innerHTML = '<h2>No bills yet</h2><p>Add your first invoice or warranty slip to get started.</p>'; return; }
+    const active = ws.filter((w) => w.status === 'active' || w.status === 'soon').length;
+    const soon = ws.filter((w) => w.status === 'soon').length;
+    const spent = items.reduce((s, it) => s + (it.price || 0), 0);
+    el.innerHTML = `<h2><span class="num">${items.length}</span> bill${items.length === 1 ? '' : 's'}, <span class="num">${active}</span> under warranty</h2>
+      <p>Total recorded spend <span class="num">${inr.format(spent)}</span></p>
+      ${soon ? `<button class="alert" id="soonAlert">${icon.warn}<span><b>${soon} warrant${soon === 1 ? 'y ends' : 'ies end'}</b> within ${BILL_SOON_DAYS} days. Check ${soon === 1 ? 'it' : 'them'} before claims close.</span></button>` : ''}`;
+  } else {
+    const items = state.docs;
+    if (!items.length) { el.innerHTML = '<h2>No documents yet</h2><p>Keep ID cards, licences, insurance papers and certificates here, with renewal reminders.</p>'; return; }
+    const people = new Set(items.map((d) => d.holder).filter(Boolean)).size;
+    const soon = items.filter((d) => docStatus(d).status === 'soon').length;
+    const expired = items.filter((d) => docStatus(d).status === 'expired').length;
+    el.innerHTML = `<h2><span class="num">${items.length}</span> document${items.length === 1 ? '' : 's'}${people > 1 ? ` for <span class="num">${people}</span> people` : ''}</h2>
+      <p>${[expired ? `${expired} expired` : '', `${items.filter((d) => d.encrypted).length} encrypted`].filter(Boolean).join(', ')}</p>
+      ${soon ? `<button class="alert" id="soonAlert">${icon.warn}<span><b>${soon} document${soon === 1 ? ' needs' : 's need'} renewal soon.</b> Start the process before ${soon === 1 ? 'it expires' : 'they expire'}.</span></button>` : ''}`;
+  }
+  const a = $('#soonAlert');
+  if (a) a.onclick = () => { state.f[state.view].chip = 'soon'; renderControls(); renderList(); };
+}
+function renderControls() {
+  const v = state.view, f = state.f[v];
+  const list = state[v];
+  $('#q').placeholder = v === 'bills' ? 'Search product, brand, store, serial' : 'Search document, person, notes';
+  $('#q').value = f.q;
+  let chips;
+  if (v === 'bills') {
+    const c = { all: list.length, soon: 0, active: 0, expired: 0, none: 0 };
+    list.forEach((it) => { const s = billStatus(it).status; c[s]++; if (s === 'soon') c.active++; });
+    chips = [['all', 'All', c.all], ['soon', 'Ending soon', c.soon], ['active', 'Under warranty', c.active], ['expired', 'Expired', c.expired], ['none', 'No warranty', c.none]];
+    const cats = [...new Set(list.map((i) => i.category).filter(Boolean))].sort();
+    if (f.sel1 !== 'all' && !cats.includes(f.sel1)) f.sel1 = 'all';
+    $('#sel1').innerHTML = '<option value="all">All categories</option>' + cats.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+    $('#sel2').innerHTML = [['expiry', 'Ending soonest'], ['newest', 'Newest purchase'], ['oldest', 'Oldest purchase'], ['price', 'Highest price'], ['name', 'Name A to Z']].map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
+  } else {
+    const st = list.map(docStatus);
+    chips = [['all', 'All', list.length], ['soon', 'Renew soon', st.filter((s) => s.status === 'soon').length], ['expired', 'Expired', st.filter((s) => s.status === 'expired').length]];
+    GROUPS.forEach((g) => { const n = list.filter((d) => typeInfo(d.docType).g === g).length; if (n) chips.push([`g:${g}`, g, n]); });
+    const people = [...new Set(list.map((d) => d.holder).filter(Boolean))].sort();
+    if (f.sel1 !== 'all' && !people.includes(f.sel1)) f.sel1 = 'all';
+    $('#sel1').innerHTML = '<option value="all">Everyone</option>' + people.map((x) => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
+    $('#sel2').innerHTML = [['expiry', 'Expiring soonest'], ['recent', 'Recently added'], ['name', 'Name A to Z'], ['holder', 'By person']].map(([k, l]) => `<option value="${k}">${l}</option>`).join('');
+  }
+  if (!chips.some(([k]) => k === f.chip)) f.chip = 'all';
+  $('#chips').innerHTML = chips.map(([k, l, n]) => `<button class="chip" data-chip="${esc(k)}" aria-pressed="${f.chip === k}">${esc(l)}<span class="count num">${n}</span></button>`).join('');
+  $('#sel1').value = f.sel1; $('#sel2').value = f.sort;
+}
+const RANK = { soon: 0, active: 1, expired: 2, none: 3 };
+const byExpiry = (a, b) => RANK[a.w.status] - RANK[b.w.status] || (a.w.status === 'expired' ? b.w.days - a.w.days : (a.w.days ?? 0) - (b.w.days ?? 0));
+function visible(kind) {
+  const f = state.f[kind], needle = f.q.trim().toLowerCase();
+  let arr = state[kind].map((o) => ({ o, w: statusOf(kind, o) }));
+  if (kind === 'bills') {
+    if (needle) arr = arr.filter(({ o }) => [o.product, o.brand, o.store, o.serial, o.notes, o.category].join(' ').toLowerCase().includes(needle));
+    if (f.chip === 'active') arr = arr.filter(({ w }) => w.status === 'active' || w.status === 'soon');
+    else if (f.chip !== 'all') arr = arr.filter(({ w }) => w.status === f.chip);
+    if (f.sel1 !== 'all') arr = arr.filter(({ o }) => o.category === f.sel1);
+    const s = {
+      expiry: byExpiry,
+      newest: (a, b) => (b.o.purchaseDate || '').localeCompare(a.o.purchaseDate || ''),
+      oldest: (a, b) => (a.o.purchaseDate || '').localeCompare(b.o.purchaseDate || ''),
+      price: (a, b) => (b.o.price || 0) - (a.o.price || 0),
+      name: (a, b) => a.o.product.localeCompare(b.o.product),
+    };
+    return arr.sort(s[f.sort] || byExpiry);
+  }
+  if (needle) arr = arr.filter(({ o }) => [o.title, o.docType, o.holder, o.notes, o.encrypted ? '' : o.number].join(' ').toLowerCase().includes(needle));
+  if (f.chip === 'soon' || f.chip === 'expired') arr = arr.filter(({ w }) => w.status === f.chip);
+  else if (f.chip.startsWith('g:')) arr = arr.filter(({ o }) => typeInfo(o.docType).g === f.chip.slice(2));
+  if (f.sel1 !== 'all') arr = arr.filter(({ o }) => o.holder === f.sel1);
+  const s = {
+    expiry: byExpiry,
+    recent: (a, b) => (b.o.createdAt || '').localeCompare(a.o.createdAt || ''),
+    name: (a, b) => (a.o.title || a.o.docType).localeCompare(b.o.title || b.o.docType),
+    holder: (a, b) => (a.o.holder || '').localeCompare(b.o.holder || '') || byExpiry(a, b),
+  };
+  return arr.sort(s[f.sort] || byExpiry);
+}
 function renderList() {
-  const el = $('#list');
+  const el = $('#list'), kind = state.view;
   if (!state.loaded) {
     el.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton"><div style="width:55%"></div><div style="width:35%"></div><div style="width:100%"></div></div>').join('');
     return;
   }
-  if (!state.items.length) {
-    el.innerHTML = `<div class="empty"><h3>Your vault is empty</h3><p>Snap a photo of a bill or pick a PDF. It goes straight into your Google Drive.</p><button class="btn primary" data-add>${icon.camera} Add your first bill</button></div>`;
+  if (!state[kind].length) {
+    el.innerHTML = kind === 'bills'
+      ? `<div class="empty"><h3>Your bills will show here</h3><p>Snap a photo of a bill or pick a PDF. It goes straight into your Google Drive.</p><button class="btn primary" data-add>${icon.camera} Add your first bill</button></div>`
+      : `<div class="empty"><h3>Your documents will show here</h3><p>Add Aadhaar, PAN, licence, passport, insurance or certificates. Encrypt the sensitive ones.</p><button class="btn primary" data-add>${icon.camera} Add your first document</button></div>`;
     return;
   }
-  const rows = visibleItems();
-  if (!rows.length) {
-    el.innerHTML = `<div class="empty"><h3>No bills match</h3><p>Try a different search or filter.</p><button class="btn" data-clear>Clear filters</button></div>`;
-    return;
-  }
-  el.innerHTML = rows.map(({ it, w }) => {
-    const sub = [it.brand, it.store].filter(Boolean);
-    return `<button class="row" data-id="${esc(it.id)}">
-      <div class="row-top"><span class="row-title">${esc(it.product)}</span>${it.price != null ? `<span class="row-amount num">${inr.format(it.price)}</span>` : ''}</div>
-      <div class="row-sub">
-        ${sub.length ? `<span>${sub.map(esc).join(', ')}</span>` : ''}
-        <span class="num">${fmtDate(parseDate(it.purchaseDate))}</span>
-        ${it.files.length ? `<span class="clip">${icon.clip}${it.files.length}</span>` : ''}
-      </div>
-      ${lifeBar(w)}
-    </button>`;
-  }).join('');
+  const rows = visible(kind);
+  if (!rows.length) { el.innerHTML = '<div class="empty"><h3>Nothing matches</h3><p>Try a different search or filter.</p><button class="btn" data-clear>Clear filters</button></div>'; return; }
+  el.innerHTML = rows.map(({ o, w }) => (kind === 'bills' ? billRow(o, w) : docRow(o, w))).join('');
+}
+function billRow(it, w) {
+  const sub = [it.brand, it.store].filter(Boolean);
+  return `<button class="row" data-id="${esc(it.id)}">
+    <div class="row-top"><span class="row-title">${esc(it.product)}</span>${it.price != null ? `<span class="row-amount num">${inr.format(it.price)}</span>` : ''}</div>
+    <div class="row-sub">${sub.length ? `<span>${sub.map(esc).join(', ')}</span>` : ''}<span class="num">${fmtDate(parseDate(it.purchaseDate))}</span>${it.files.length ? `<span class="clip">${icon.clip}${it.files.length}</span>` : ''}</div>
+    ${lifeBar(w)}</button>`;
+}
+function docRow(d, w) {
+  const num = !d.number ? '' : d.encrypted ? `<span class="lockico">${icon.lock}Encrypted</span>` : `<span class="num">${esc(maskNumber(d.number))}</span>`;
+  return `<button class="row" data-id="${esc(d.id)}">
+    <div class="row-top"><span class="row-title">${esc(d.title || d.docType)}</span></div>
+    <div class="row-sub"><span>${esc(d.holder || 'Me')}</span>${num}${d.files.length ? `<span class="clip">${icon.clip}${d.files.length}</span>` : ''}</div>
+    ${lifeBar(w)}</button>`;
 }
 
-function renderAll() { renderSummary(); renderChips(); renderList(); }
-
-/* ---------- Sheets (bottom panels) ---------- */
-function openSheet(html) {
-  $('#sheet').innerHTML = html;
-  $('#backdrop').hidden = false;
-  document.body.style.overflow = 'hidden';
-  $('#sheet').scrollTop = 0;
-}
-function closeSheet() {
-  $('#backdrop').hidden = true;
-  $('#sheet').innerHTML = '';
-  document.body.style.overflow = '';
-}
-const head = (title) => `<div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">${icon.close}</button></div>`;
-
-function openDetail(it) {
-  const w = warranty(it);
-  const rows = [
-    ['Brand', it.brand], ['Category', it.category], ['Store', it.store],
-    ['Purchased', fmtDate(parseDate(it.purchaseDate))],
-    ['Price', it.price != null ? inr.format(it.price) : ''],
-    ['Warranty', durationLabel(it.warrantyMonths)],
-    ['Serial / IMEI', it.serial], ['Notes', it.notes],
-  ].filter(([, v]) => v);
-  const files = it.files.length
-    ? it.files.map((f) => `<a class="file-link" href="${esc(fileHref(f))}" target="_blank" rel="noopener">${/^image\//.test(f.mime) ? icon.image : icon.file}<span>${esc(f.name)}</span></a>`).join('')
-    : '<p class="hint">No files attached. Edit this bill to add the invoice or warranty slip.</p>';
+/* ---------- Bills: detail + form ---------- */
+function openBillDetail(it) {
+  const w = billStatus(it);
+  const rows = [['Brand', it.brand], ['Category', it.category], ['Store', it.store], ['Purchased', fmtDate(parseDate(it.purchaseDate))],
+    ['Price', it.price != null ? inr.format(it.price) : ''], ['Warranty', durationLabel(it.warrantyMonths)], ['Serial / IMEI', it.serial], ['Notes', it.notes]].filter(([, v]) => v);
   const canRemind = w.status === 'active' || w.status === 'soon';
+  const details = [`Warranty for ${it.product}${it.brand ? ` (${it.brand})` : ''} ends on ${fmtDate(w.expiry)}.`, it.serial ? `Serial / IMEI: ${it.serial}` : '', it.store ? `Bought from: ${it.store}` : '', 'Check the product and raise any claim before then.'].filter(Boolean).join('\n');
   openSheet(`${head(esc(it.product))}
     <div class="status-line">${lifeBar(w)}</div>
     <dl class="dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
-    <p class="section-title">Documents</p>
-    <div class="file-links">${files}</div>
+    <p class="section-title">Documents</p>${filesBlock(it.files)}
     <div class="actions">
-      ${canRemind ? `<a class="btn" href="${esc(calendarLink(it, w))}" target="_blank" rel="noopener">${icon.bell} Add calendar reminder</a>` : ''}
-      <div class="two">
-        <button class="btn danger" id="delBtn">Delete</button>
-        <button class="btn primary" id="editBtn">Edit</button>
-      </div>
+      ${canRemind ? `<a class="btn" href="${esc(calendarLink(`Warranty ending: ${it.product}`, w.expiry, 14, details))}" target="_blank" rel="noopener">${icon.bell} Add calendar reminder</a>` : ''}
+      <div class="two"><button class="btn danger" id="delBtn">Delete</button><button class="btn primary" id="editBtn">Edit</button></div>
     </div>`);
-  $('#editBtn').onclick = () => openForm(it);
-  $('#delBtn').onclick = async (e) => {
-    if (!confirm(`Delete "${it.product}"? Its files move to Google Drive trash, where you can restore them for 30 days.`)) return;
-    e.target.disabled = true; e.target.textContent = 'Deleting';
-    try { await deleteItem(it); closeSheet(); renderAll(); toast('Bill deleted'); }
-    catch (err) { toast(err.message, true); e.target.disabled = false; e.target.textContent = 'Delete'; }
-  };
+  mountFiles(it.files);
+  $('#editBtn').onclick = () => openBillForm(it);
+  $('#delBtn').onclick = (e) => confirmDelete(e.target, 'bills', it, it.product);
 }
-
-// Reminder via a Google Calendar link: no extra permission needed.
-function calendarLink(it, w) {
-  let d = new Date(w.expiry); d.setDate(d.getDate() - 14);
-  if (d < today()) d = today();
-  const e = new Date(d); e.setDate(e.getDate() + 1);
-  const f = (x) => toISO(x).replace(/-/g, '');
-  const details = [
-    `Warranty for ${it.product}${it.brand ? ` (${it.brand})` : ''} ends on ${fmtDate(w.expiry)}.`,
-    it.serial ? `Serial / IMEI: ${it.serial}` : '',
-    it.store ? `Bought from: ${it.store}` : '',
-    'Check the product and raise any claim before then.',
-  ].filter(Boolean).join('\n');
-  return 'https://calendar.google.com/calendar/render?' + qs({ action: 'TEMPLATE', text: `Warranty ending: ${it.product}`, dates: `${f(d)}/${f(e)}`, details });
+async function confirmDelete(btn, kind, o, name) {
+  if (!confirm(`Delete "${name}"? Its files move to Google Drive trash, where you can restore them for 30 days.`)) return;
+  btn.disabled = true; btn.textContent = 'Deleting';
+  try { await deleteObj(kind, o); closeSheet(); renderAll(); toast('Deleted'); }
+  catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Delete'; }
 }
-
-function openForm(existing) {
+function openBillForm(existing) {
   const it = existing || { product: '', brand: '', category: '', store: '', purchaseDate: toISO(today()), price: null, warrantyMonths: 12, serial: '', notes: '', files: [] };
   const inYears = it.warrantyMonths > 0 && it.warrantyMonths % 12 === 0;
-  const pending = [];
-  const removeIds = new Set();
+  const pending = [], removeIds = new Set();
+  const cats = ['', ...CATEGORIES, ...(it.category && !CATEGORIES.includes(it.category) ? [it.category] : [])];
   openSheet(`${head(existing ? 'Edit bill' : 'Add bill')}
     <form class="form" id="billForm" novalidate>
-      <label class="field"><span>Product name</span>
-        <input name="product" required maxlength="120" value="${esc(it.product)}" placeholder="e.g. Samsung 43 inch TV" autocomplete="off" /></label>
+      <label class="field"><span>Product name</span><input name="product" required maxlength="120" value="${esc(it.product)}" placeholder="e.g. Samsung 43 inch TV" autocomplete="off" /></label>
       <div class="row2">
         <label class="field"><span>Brand</span><input name="brand" maxlength="60" value="${esc(it.brand)}" autocomplete="off" /></label>
-        <label class="field"><span>Category</span><select name="category">
-          ${['', ...CATEGORIES, ...(it.category && !CATEGORIES.includes(it.category) ? [it.category] : [])]
-            .map((c) => `<option value="${esc(c)}" ${c === it.category ? 'selected' : ''}>${c ? esc(c) : 'Choose'}</option>`).join('')}
-        </select></label>
+        <label class="field"><span>Category</span><select name="category">${cats.map((c) => `<option value="${esc(c)}" ${c === it.category ? 'selected' : ''}>${c ? esc(c) : 'Choose'}</option>`).join('')}</select></label>
       </div>
       <label class="field"><span>Store or seller</span><input name="store" maxlength="80" value="${esc(it.store)}" placeholder="e.g. Croma, Amazon" autocomplete="off" /></label>
       <div class="row2">
@@ -834,178 +1207,240 @@ function openForm(existing) {
         <div class="combo">
           <input type="number" name="wNum" min="0" max="600" inputmode="numeric" aria-label="Warranty length" value="${inYears ? it.warrantyMonths / 12 : it.warrantyMonths}" />
           <select name="wUnit" aria-label="Unit"><option value="12" ${inYears ? 'selected' : ''}>Years</option><option value="1" ${!inYears ? 'selected' : ''}>Months</option></select>
-        </div>
-        <small class="hint" id="expHint"></small>
+        </div><small class="hint" id="expHint"></small>
       </div>
       <label class="field"><span>Serial or IMEI number</span><input name="serial" maxlength="80" value="${esc(it.serial)}" autocomplete="off" /></label>
       <label class="field"><span>Notes</span><textarea name="notes" rows="2" maxlength="1000" placeholder="Extended warranty, service centre number, etc.">${esc(it.notes)}</textarea></label>
-      <div class="field"><span>Invoice and warranty slip</span>
-        ${it.files.length ? `<ul class="files" id="oldFiles">${it.files.map((f) => `<li data-fid="${esc(f.id)}"><span class="name">${esc(f.name)}</span><button type="button">Remove</button></li>`).join('')}</ul>` : ''}
-        <label class="picker">
-          <input type="file" id="fileInput" multiple accept="image/*,application/pdf" hidden />
-          ${icon.camera}<span><b>Add photos or PDFs</b><small>Take a photo or choose files</small></span>
-        </label>
-        <ul class="files" id="newFiles"></ul>
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn primary" id="saveBtn">${existing ? 'Save changes' : 'Save bill'}</button>
-      </div>
+      ${filePickerBlock(it.files, 'Invoice and warranty slip', 'Take a photo or choose files')}
+      <div class="form-actions"><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="saveBtn">${existing ? 'Save changes' : 'Save bill'}</button></div>
     </form>`);
-
   const form = $('#billForm');
   const updateHint = () => {
-    const months = Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value));
-    const w = warranty({ purchaseDate: form.purchaseDate.value, warrantyMonths: months });
+    const w = billStatus({ purchaseDate: form.purchaseDate.value, warrantyMonths: Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value)) });
     $('#expHint').textContent = w.expiry ? `Covered until ${fmtDate(w.expiry)}` : 'No warranty';
   };
   ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (['wNum', 'wUnit', 'purchaseDate'].includes(e.target.name)) updateHint(); }));
   updateHint();
-
-  const renderNew = () => {
-    $('#newFiles').innerHTML = pending.map((f, i) => `<li><span class="name">${esc(f.name)}</span><span class="hint num">${(f.size / 1e6).toFixed(1)} MB</span><button type="button" data-i="${i}">Remove</button></li>`).join('');
-  };
-  $('#fileInput').onchange = (e) => {
-    for (const f of e.target.files) {
-      if (f.size > 25e6) { toast(`${f.name} is over 25 MB. Choose a smaller file.`, true); continue; }
-      pending.push(f);
-    }
-    e.target.value = '';
-    renderNew();
-  };
-  $('#newFiles').onclick = (e) => {
-    const b = e.target.closest('button[data-i]');
-    if (b) { pending.splice(Number(b.dataset.i), 1); renderNew(); }
-  };
-  const old = $('#oldFiles');
-  if (old) old.onclick = (e) => {
-    const li = e.target.closest('li'); if (!li || e.target.tagName !== 'BUTTON') return;
-    const id = li.dataset.fid;
-    if (removeIds.has(id)) { removeIds.delete(id); li.classList.remove('removed'); e.target.textContent = 'Remove'; }
-    else { removeIds.add(id); li.classList.add('removed'); e.target.textContent = 'Undo'; }
-  };
-
+  wireFilePicker(pending, removeIds);
   form.onsubmit = async (e) => {
     e.preventDefault();
     const product = form.product.value.trim();
-    if (!product) { toast('Enter a product name.', true); form.product.focus(); return; }
-    if (!form.purchaseDate.value) { toast('Enter the purchase date.', true); form.purchaseDate.focus(); return; }
+    if (!product) { toast('Enter a product name.', true); return form.product.focus(); }
+    if (!form.purchaseDate.value) { toast('Enter the purchase date.', true); return form.purchaseDate.focus(); }
     const priceRaw = form.price.value.trim();
     const data = {
-      product,
-      brand: form.brand.value.trim(),
-      category: form.category.value,
-      store: form.store.value.trim(),
-      purchaseDate: form.purchaseDate.value,
-      price: priceRaw === '' ? null : Math.max(0, Number(priceRaw)),
+      product, brand: form.brand.value.trim(), category: form.category.value, store: form.store.value.trim(),
+      purchaseDate: form.purchaseDate.value, price: priceRaw === '' ? null : Math.max(0, Number(priceRaw)),
       warrantyMonths: Math.max(0, Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value))),
-      serial: form.serial.value.trim(),
-      notes: form.notes.value.trim(),
+      serial: form.serial.value.trim(), notes: form.notes.value.trim(),
     };
-    const btn = $('#saveBtn');
-    const label = btn.textContent;
-    btn.disabled = true;
-    try {
-      await saveItem(existing, data, pending, removeIds, (msg) => { btn.textContent = msg; });
-      closeSheet(); renderAll();
-      toast(existing ? 'Changes saved' : 'Bill saved');
-    } catch (err) {
-      toast(err.message, true);
-      btn.disabled = false; btn.textContent = label;
-    }
+    await runSave($('#saveBtn'), () => saveObj('bills', existing, data, pending, removeIds, { encrypt: false, baseName: `${data.purchaseDate} ${data.product}` }, (m) => { $('#saveBtn').textContent = m; }), existing ? 'Changes saved' : 'Bill saved');
+  };
+}
+async function runSave(btn, fn, okMsg) {
+  const label = btn.textContent; btn.disabled = true;
+  try { await fn(); closeSheet(); renderAll(); toast(okMsg); }
+  catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = label; }
+}
+
+/* ---------- Documents: detail + form ---------- */
+async function openDocDetail(d) {
+  const w = docStatus(d);
+  let number = d.number, numberLocked = false;
+  if (d.encrypted && d.number) {
+    if (vault.key) { try { number = await decText(vault.key, d.number); } catch { number = ''; } }
+    else numberLocked = true;
+  }
+  const rows = [['Issued', fmtDate(parseDate(d.issueDate))], ['Expires', fmtDate(parseDate(d.expiryDate))], ['Notes', d.notes]].filter(([, v]) => v);
+  const canRemind = w.status === 'active' || w.status === 'soon';
+  const title = d.title || d.docType;
+  const numBox = !d.number ? '' : numberLocked
+    ? `<div class="numbox"><span class="val muted">Number is encrypted</span><button class="mini" id="unlockBtn">Unlock</button></div>`
+    : `<div class="numbox"><span class="val" id="numVal">${esc(maskNumber(number))}</span><button class="mini" id="showNum">Show</button><button class="mini" id="copyNum">Copy</button></div>`;
+  openSheet(`${head(esc(title))}
+    <p class="sheet-sub">${esc(d.docType)}${d.holder ? `, ${esc(d.holder)}` : ''}${d.encrypted ? ', encrypted' : ''}</p>
+    ${w.status !== 'none' ? `<div class="status-line">${lifeBar(w)}</div>` : ''}
+    ${numBox}
+    ${rows.length ? `<dl class="dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
+    <p class="section-title">Files</p>${filesBlock(d.files)}
+    <div class="actions">
+      ${canRemind ? `<a class="btn" href="${esc(calendarLink(`Renew: ${title}${d.holder ? ` (${d.holder})` : ''}`, w.expiry, w.soonDays, `${title} expires on ${fmtDate(w.expiry)}. Start the renewal now.`))}" target="_blank" rel="noopener">${icon.bell} Add renewal reminder</a>` : ''}
+      <div class="two"><button class="btn danger" id="delBtn">Delete</button><button class="btn primary" id="editBtn">Edit</button></div>
+    </div>`);
+  mountFiles(d.files, () => openDocDetail(d));
+  const ub = $('#unlockBtn');
+  if (ub) ub.onclick = () => ensureVaultKey().then(() => openDocDetail(d)).catch((e) => toast(e.message, true));
+  const sb = $('#showNum');
+  if (sb) sb.onclick = () => { const shown = sb.textContent === 'Hide'; $('#numVal').textContent = shown ? maskNumber(number) : number; sb.textContent = shown ? 'Show' : 'Hide'; };
+  const cb = $('#copyNum');
+  if (cb) cb.onclick = () => navigator.clipboard.writeText(number).then(() => toast('Number copied'), () => toast('Couldn\'t copy. Tap Show and copy it manually.', true));
+  $('#editBtn').onclick = () => openDocForm(d);
+  $('#delBtn').onclick = (e) => confirmDelete(e.target, 'docs', d, title);
+}
+async function openDocForm(existing) {
+  let number = existing?.number || '';
+  if (existing?.encrypted && number) {
+    try { await ensureVaultKey(); number = await decText(vault.key, number); }
+    catch (e) { return toast(e.message || 'Unlock your vault to edit this document.', true); }
+  }
+  const d = existing || { docType: '', title: '', holder: 'Me', issueDate: '', expiryDate: '', notes: '', files: [], encrypted: false };
+  const pending = [], removeIds = new Set();
+  const holders = [...new Set(['Me', ...state.docs.map((x) => x.holder).filter(Boolean)])];
+  const typeOptions = GROUPS.map((g) => `<optgroup label="${g}">${DOC_TYPES.filter((t) => t.g === g).map((t) => `<option value="${esc(t.t)}" ${t.t === d.docType ? 'selected' : ''}>${esc(t.t)}</option>`).join('')}</optgroup>`).join('');
+  openSheet(`${head(existing ? 'Edit document' : 'Add document')}
+    <form class="form" id="docForm" novalidate>
+      <label class="field"><span>Document type</span><select name="docType" required><option value="">Choose</option>${typeOptions}</select></label>
+      <div class="row2">
+        <label class="field"><span>Name it (optional)</span><input name="title" maxlength="80" value="${esc(d.title && d.title !== d.docType ? d.title : '')}" placeholder="e.g. Car insurance" autocomplete="off" /></label>
+        <label class="field"><span>Belongs to</span><input name="holder" maxlength="40" value="${esc(d.holder)}" list="holderList" autocomplete="off" /><datalist id="holderList">${holders.map((h) => `<option value="${esc(h)}"></option>`).join('')}</datalist></label>
+      </div>
+      <label class="field"><span>Document number</span><input name="number" maxlength="60" value="${esc(number)}" autocomplete="off" spellcheck="false" /></label>
+      <div class="row2">
+        <label class="field"><span>Issue date</span><input type="date" name="issueDate" value="${esc(d.issueDate)}" /></label>
+        <label class="field"><span>Expiry date</span><input type="date" name="expiryDate" value="${esc(d.expiryDate)}" /></label>
+      </div>
+      <small class="hint" id="docHint"></small>
+      <label class="field"><span>Notes</span><textarea name="notes" rows="2" maxlength="1000" placeholder="Policy number, agent contact, renewal office, etc.">${esc(d.notes)}</textarea></label>
+      ${filePickerBlock(d.files, 'Photos or PDF', 'Front and back, or the PDF')}
+      ${existing
+        ? (d.encrypted ? `<div class="badge">${icon.lock} Encrypted with your vault password</div>` : '')
+        : `<label class="check"><input type="checkbox" name="encrypt" id="encBox" /><span><b>Encrypt with vault password</b><small>Recommended for Aadhaar, PAN, passport and bank papers. Files are scrambled on your phone before upload.</small></span></label>`}
+      <div class="form-actions"><button type="button" class="btn" data-close>Cancel</button><button type="submit" class="btn primary" id="saveBtn">${existing ? 'Save changes' : 'Save document'}</button></div>
+    </form>`);
+  const form = $('#docForm');
+  let encTouched = false;
+  const updateHint = () => {
+    const t = form.docType.value;
+    const info = t ? typeInfo(t) : null;
+    const box = $('#encBox');
+    if (box && !encTouched) box.checked = !!info && SENSITIVE_GROUPS.includes(info.g);
+    const w = docStatus({ docType: t, issueDate: form.issueDate.value, expiryDate: form.expiryDate.value });
+    $('#docHint').textContent = w.expiry
+      ? `${w.status === 'expired' ? 'Already expired' : `Valid for ${timeLeft(w.days).replace(' left', '')}`}. You'll be reminded ${w.soonDays} days before.`
+      : info?.exp ? 'Add the expiry date to get a renewal reminder.' : '';
+  };
+  form.addEventListener('change', (e) => { if (e.target.id === 'encBox') encTouched = true; updateHint(); });
+  updateHint();
+  wireFilePicker(pending, removeIds);
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const docType = form.docType.value;
+    if (!docType) { toast('Choose the document type.', true); return form.docType.focus(); }
+    if (form.issueDate.value && form.expiryDate.value && form.expiryDate.value < form.issueDate.value) return toast('Expiry date is before the issue date.', true);
+    const encrypt = existing ? !!existing.encrypted : !!$('#encBox')?.checked;
+    if (encrypt) { try { await ensureVaultKey(); } catch (err) { return toast(err.message, true); } }
+    const plainNumber = form.number.value.trim();
+    const data = {
+      docType, title: form.title.value.trim() || docType, holder: form.holder.value.trim() || 'Me',
+      number: encrypt && plainNumber ? await encText(vault.key, plainNumber) : plainNumber,
+      issueDate: form.issueDate.value, expiryDate: form.expiryDate.value, notes: form.notes.value.trim(), encrypted: encrypt,
+    };
+    await runSave($('#saveBtn'), () => saveObj('docs', existing, data, pending, removeIds, { encrypt, baseName: `${docType} ${data.holder}` }, (m) => { $('#saveBtn').textContent = m; }), existing ? 'Changes saved' : 'Document saved');
   };
 }
 
+/* ---------- Menu ---------- */
 function openMenu() {
+  const lock = getLock();
+  const vaultState = !vaultExists() ? 'Not set up' : vault.key ? 'Unlocked' : 'Locked';
   openSheet(`${head('InvoiceVault')}
     <div class="menu">
-      <a href="https://docs.google.com/spreadsheets/d/${esc(state.spreadsheetId)}" target="_blank" rel="noopener">${icon.sheet} Open data sheet in Google Sheets</a>
-      <a href="https://drive.google.com/drive/folders/${esc(state.folderId)}" target="_blank" rel="noopener">${icon.folder} Open folder in Google Drive</a>
+      <div class="label">Security</div>
+      <button id="mLock">${icon.finger} App lock<span class="state">${lock ? 'On' : 'Off'}</span></button>
+      <button id="mVault">${icon.key} Vault password<span class="state">${vaultState}</span></button>
+      ${lock ? `<button id="mLockNow">${icon.lock} Lock now</button>` : ''}
+      <div class="label">Your data</div>
+      <a href="https://docs.google.com/spreadsheets/d/${esc(state.spreadsheetId)}" target="_blank" rel="noopener">${icon.sheet} Open data sheet</a>
+      <a href="https://drive.google.com/drive/folders/${esc(state.folderId)}" target="_blank" rel="noopener">${icon.folder} Open Drive folder</a>
       <button id="mRefresh">${icon.refresh} Refresh</button>
-      ${installPrompt ? `<button id="mInstall">${icon.install} Install app on this device</button>` : ''}
+      ${installPrompt ? `<button id="mInstall">${icon.install} Install app on this phone</button>` : ''}
       <button id="mOut">${icon.out} Sign out</button>
     </div>`);
+  $('#mLock').onclick = openLockSettings;
+  $('#mVault').onclick = () => {
+    if (!vaultExists()) { closeSheet(); askVaultSetup().catch((e) => toast(e.message, true)); }
+    else if (vault.key) { lockVault(); closeSheet(); renderAll(); toast('Encrypted documents locked'); }
+    else { closeSheet(); askVaultUnlock().then(() => toast('Encrypted documents unlocked')).catch((e) => toast(e.message, true)); }
+  };
+  const ln = $('#mLockNow');
+  if (ln) ln.onclick = () => showLock();
   $('#mRefresh').onclick = async () => {
     closeSheet(); state.loaded = false; renderAll();
-    try { await loadItems(); } catch (e) { toast(e.message, true); state.loaded = true; }
+    try { await loadAll(); } catch (e) { toast(e.message, true); state.loaded = true; }
     renderAll();
   };
   $('#mOut').onclick = () => { closeSheet(); signOut(); };
   const ins = $('#mInstall');
-  if (ins) ins.onclick = async () => { closeSheet(); installPrompt.prompt(); installPrompt = null; };
-}
-
-let toastTimer;
-function toast(msg, isError = false) {
-  const t = $('#toast');
-  t.textContent = msg;
-  t.className = 'toast' + (isError ? ' error' : '');
-  t.hidden = false;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 5000 : 2500);
+  if (ins) ins.onclick = () => { closeSheet(); installPrompt.prompt(); installPrompt = null; };
 }
 
 /* ---------- Lifecycle ---------- */
 async function startApp() {
-  show('app');
-  state.loaded = false;
-  renderAll();
+  show('app'); state.loaded = false; renderAll(); measureTop();
   try {
     state.folderId = await ensureFolder();
     const s = await ensureSheet(state.folderId);
-    state.spreadsheetId = s.id; state.tabId = s.tabId;
-    await loadItems();
-    renderAll();
+    state.spreadsheetId = s.id; state.tabIds = s.tabIds;
+    await loadAll();
   } catch (err) {
-    if (!state.token) return; // signed out during load
-    toast(err.message, true);
-    state.loaded = true; renderAll();
+    if (!state.token) return;
+    toast(err.message, true); state.loaded = true;
   }
+  renderAll();
 }
 function signOut() {
-  clearToken();
-  Object.assign(state, { folderId: null, spreadsheetId: null, tabId: null, items: [], loaded: false });
+  clearToken(); lockVault(); closeSheet(); closeDialog(); closeViewer();
+  Object.assign(state, { folderId: null, spreadsheetId: null, tabIds: {}, bills: [], docs: [], settings: {}, loaded: false });
   show('signin');
 }
+function measureTop() { const h = $('#topbar').offsetHeight; if (h) document.documentElement.style.setProperty('--top-h', h + 'px'); }
 
 async function boot() {
   if (CLIENT_ID.startsWith('PASTE_')) { show('setup'); return; }
-  try { await initGis(); }
-  catch (e) { show('signin'); toast(e.message, true); return; }
+  const gis = initGis().catch((e) => e);
+  if (getLock()) await showLock();
+  const g = await gis;
+  if (g instanceof Error) { show('signin'); toast(g.message, true); return; }
   let saved = null;
   try { saved = JSON.parse(sessionStorage.getItem('iv.token') || 'null'); } catch {}
-  if (saved && saved.exp > Date.now() + 60000) {
-    state.token = saved.token; state.tokenExp = saved.exp;
-    startApp();
-  } else show('signin');
+  if (saved && saved.exp > Date.now() + 60000) { state.token = saved.token; state.tokenExp = saved.exp; startApp(); }
+  else show('signin');
 }
 
 /* ---------- Events ---------- */
 $('#signinBtn').onclick = () => {
-  if (!tokenClient) { toast('Google sign-in is still loading. Try again in a moment.', true); return; }
+  if (!tokenClient) return toast('Google sign-in is still loading. Try again in a moment.', true);
   requestToken(false).then(startApp).catch((e) => toast(e.message, true));
 };
-$('#addBtn').onclick = () => openForm(null);
+$('#addBtn').onclick = () => (state.view === 'bills' ? openBillForm(null) : openDocForm(null));
 $('#menuBtn').onclick = openMenu;
+document.querySelectorAll('.tab').forEach((t) => { t.onclick = () => { state.view = t.dataset.view; renderAll(); window.scrollTo(0, 0); }; });
 let qTimer;
-$('#q').oninput = (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.filter.q = e.target.value; renderList(); }, 120); };
-$('#cat').onchange = (e) => { state.filter.category = e.target.value; renderList(); };
-$('#sort').onchange = (e) => { state.filter.sort = e.target.value; renderList(); };
-$('#chips').onclick = (e) => {
-  const b = e.target.closest('.chip'); if (!b) return;
-  state.filter.status = b.dataset.status; renderChips(); renderList();
-};
+$('#q').oninput = (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.f[state.view].q = e.target.value; renderList(); }, 120); };
+$('#sel1').onchange = (e) => { state.f[state.view].sel1 = e.target.value; renderList(); };
+$('#sel2').onchange = (e) => { state.f[state.view].sort = e.target.value; renderList(); };
+$('#chips').onclick = (e) => { const b = e.target.closest('.chip'); if (!b) return; state.f[state.view].chip = b.dataset.chip; renderControls(); renderList(); };
 $('#list').onclick = (e) => {
-  if (e.target.closest('[data-add]')) return openForm(null);
-  if (e.target.closest('[data-clear]')) {
-    state.filter = { ...state.filter, q: '', status: 'all', category: 'all' };
-    $('#q').value = ''; renderChips(); renderList(); return;
-  }
-  const row = e.target.closest('.row');
-  if (row) { const it = state.items.find((i) => i.id === row.dataset.id); if (it) openDetail(it); }
+  if (e.target.closest('[data-add]')) return $('#addBtn').click();
+  if (e.target.closest('[data-clear]')) { Object.assign(state.f[state.view], { q: '', chip: 'all', sel1: 'all' }); renderControls(); renderList(); return; }
+  const row = e.target.closest('.row'); if (!row) return;
+  const o = state[state.view].find((x) => x.id === row.dataset.id);
+  if (o) state.view === 'bills' ? openBillDetail(o) : openDocDetail(o);
 };
 $('#backdrop').onclick = (e) => { if (e.target.id === 'backdrop' || e.target.closest('[data-close]')) closeSheet(); };
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#backdrop').hidden) closeSheet(); });
+$('#viewer').onclick = closeViewer;
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!$('#viewer').hidden) closeViewer();
+  else if (!$('#backdrop').hidden) closeSheet();
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { hiddenAt = Date.now(); return; }
+  const away = hiddenAt ? Date.now() - hiddenAt : 0;
+  if (away > VAULT_FORGET_MS && vault.key) { lockVault(); if (!$('#backdrop').hidden) closeSheet(); }
+  if (getLock() && away > LOCK_AFTER_MS) showLock();
+});
+window.addEventListener('resize', measureTop);
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
 

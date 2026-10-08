@@ -1,33 +1,21 @@
-# InvoiceVault
+# InvoiceVault v2
 
-Invoices and warranty slips in one place. Files go to an `InvoiceVault` folder in your Google Drive, details go to a Google Sheet in the same folder. No server, no database, free.
+Bills, warranties and personal documents in one place, stored in your own Google Drive.
 
-## 1. Google Cloud (one time)
-1. console.cloud.google.com → create project `InvoiceVault`
-2. APIs & Services → Library → enable **Google Drive API** and **Google Sheets API**
-3. OAuth consent screen → External → add yourself as a **Test user** → scope `.../auth/drive.file`
-4. Credentials → Create OAuth Client ID → **Web application**
-   Authorized JavaScript origins: `http://localhost:4200` (+ your hosted URL later)
-5. Copy the Client ID
+## Update your live app (GitHub)
+Upload these files to your `invoicevault` repo and replace the old ones:
+index.html, sw.js (plus the icons and manifest if missing). Commit. Wait 1-2 minutes.
+On your phone, close and reopen the app (twice if you still see the old version).
 
-## 2. Configure
-Open `index.html`, find `const CLIENT_ID = 'PASTE_YOUR_CLIENT_ID...'` and paste your ID.
+## What's new
+- Documents tab: Aadhaar, PAN, passport, licence, RC, insurance, PUC, certificates and more
+- Expiry tracking with type-aware alerts (passport 6 months before, PUC 15 days, etc.)
+- "Belongs to" field for family members
+- Optional encryption (AES-256-GCM) with a vault password, done on your phone before upload
+- App lock with fingerprint/screen lock or a PIN
+- Image previews for bills and documents, full-screen view
 
-## 3. Run locally
-```
-cd invoicevault
-npx serve -l 4200        # or: python -m http.server 4200
-```
-Open http://localhost:4200
-
-## 4. Host free and use on your phone
-- Netlify Drop: open app.netlify.com/drop and drag the `invoicevault` folder in.
-  (Or GitHub Pages / Cloudflare Pages.)
-- Add the new https URL to **Authorized JavaScript origins** in Google Cloud. Wait a few minutes.
-- On your phone open the URL in Chrome → menu → **Install app** / **Add to Home screen**.
-
-## Notes
-- First sign-in shows "Google hasn't verified this app". That's normal for your own test app: tap Continue.
-- Google sign-in lasts 1 hour; the app asks you to continue when it expires.
-- Reminders: open a bill → "Add calendar reminder" (2 weeks before expiry).
-- Deleted bills move their files to Drive trash (restorable for 30 days).
+## Important
+- If you forget the vault password, encrypted documents cannot be recovered. Write it down somewhere safe.
+- The app lock is set separately on each phone.
+- Don't rename the InvoiceVault folder, the "InvoiceVault Data" sheet, or its tabs.

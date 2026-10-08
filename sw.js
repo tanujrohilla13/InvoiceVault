@@ -1,5 +1,5 @@
 // Caches only the app shell. Your bills are never cached here — they stay in Google Drive.
-const CACHE = 'invoicevault-v1';
+const CACHE = 'invoicevault-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
