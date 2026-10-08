@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>InvoiceVault</title>
+<meta name="description" content="Invoices and warranty slips in one place, stored in your own Google Drive." />
+<meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --bg: #eef1f5; --surface: #ffffff; --surface-2: #f5f7fa; --ink: #15202b; --muted: #5d6b7a; --line: #dde3ea;
+  --accent: #2b45c9; --accent-ink: #ffffff; --accent-soft: #e6eafb;
+  --ok: #1e7a52; --ok-soft: #dff1e8; --warn: #a65800; --warn-soft: #fcebd5;
+  --danger: #c0362c; --danger-soft: #fbe3e0; --none: #7a8796; --none-soft: #e9edf2;
+  --font: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141b; --surface: #171e27; --surface-2: #1d2530; --ink: #e6ebf2; --muted: #96a3b3; --line: #2a3441;
+    --accent: #8ea2ff; --accent-ink: #0d1430; --accent-soft: #1f2a52;
+    --ok: #5fd39c; --ok-soft: #173327; --warn: #f0ac5a; --warn-soft: #3a2a14;
+    --danger: #ff8a7f; --danger-soft: #3d1d1a; --none: #8693a3; --none-soft: #222b36;
+    color-scheme: dark;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+  font-family: var(--font); font-size: 16px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Shared */
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 120px; }
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 18px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--surface); font-weight: 600; text-decoration: none; color: var(--ink);
+}
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: .6; cursor: progress; }
+.icon-btn {
+  width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px;
+  border: 0; background: transparent; color: var(--ink);
+}
+.icon-btn:hover { background: var(--surface-2); }
+svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Gate screens (setup / sign in) */
+.gate { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.gate-card { width: 100%; max-width: 420px; }
+.gate h1 { font-size: 34px; line-height: 1.1; letter-spacing: -0.02em; margin: 20px 0 12px; }
+.gate p { color: var(--muted); margin: 0 0 16px; }
+.gate .btn { width: 100%; margin-top: 8px; }
+.gate .fine { font-size: 14px; margin-top: 20px; }
+.gate ol { padding-left: 20px; color: var(--muted); }
+.gate code { background: var(--surface); padding: 2px 6px; border-radius: 6px; font-size: 14px; word-break: break-all; }
+.logo { width: 56px; height: 56px; border-radius: 14px; display: block; }
+
+/* Top bar */
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.topbar-inner { max-width: 680px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+.topbar-inner .logo { width: 32px; height: 32px; border-radius: 9px; }
+.topbar-inner strong { font-size: 18px; letter-spacing: -0.01em; flex: 1; }
+
+/* Summary */
+.summary { padding: 18px 0 8px; }
+.summary h2 { font-size: 28px; line-height: 1.15; letter-spacing: -0.02em; margin: 0; font-weight: 600; }
+.summary p { margin: 6px 0 0; color: var(--muted); }
+.alert {
+  margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: var(--warn-soft); color: var(--ink);
+  display: flex; align-items: center; gap: 12px; border: 0; width: 100%; text-align: left;
+}
+.alert b { color: var(--warn); }
+.alert span { flex: 1; }
+.alert svg.i { color: var(--warn); flex-shrink: 0; }
+
+/* Controls */
+.controls { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 62px); z-index: 4; background: var(--bg); padding: 14px 0 10px; }
+.search { position: relative; }
+.search svg.i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); width: 20px; height: 20px; }
+.search input {
+  width: 100%; height: 48px; padding: 0 14px 0 44px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--surface);
+}
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); font-size: 14px; font-weight: 500;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.chip .count { opacity: .6; margin-left: 4px; }
+.selects { display: flex; gap: 8px; margin-top: 10px; }
+.selects select { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-size: 14px; }
+
+/* List */
+.list { background: var(--surface); border-radius: 16px; border: 1px solid var(--line); overflow: hidden; }
+.row {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent;
+  padding: 16px; border-top: 1px solid var(--line);
+}
+.row:first-child { border-top: 0; }
+.row:hover { background: var(--surface-2); }
+.row-top { display: flex; gap: 12px; align-items: baseline; }
+.row-title { flex: 1; font-weight: 600; font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-amount { font-weight: 600; }
+.row-sub { color: var(--muted); font-size: 14px; margin-top: 2px; display: flex; gap: 12px; flex-wrap: wrap; }
+.row-sub .clip { display: inline-flex; align-items: center; gap: 3px; }
+.row-sub .clip svg.i { width: 15px; height: 15px; }
+
+/* Warranty lifespan bar: the one signature element */
+.life { margin-top: 12px; }
+.life-track { position: relative; height: 6px; border-radius: 3px; background: var(--none-soft); overflow: hidden; }
+.life-fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; }
+.life-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+.life-meta b { font-weight: 600; }
+.s-active .life-fill { background: var(--ok); } .s-active b { color: var(--ok); }
+.s-soon .life-fill { background: var(--warn); } .s-soon b { color: var(--warn); }
+.s-expired .life-fill { background: var(--danger); opacity: .45; } .s-expired b { color: var(--danger); }
+.s-none b { color: var(--none); }
+
+.empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+.empty h3 { color: var(--ink); margin: 0 0 6px; font-size: 19px; }
+.empty .btn { margin-top: 16px; }
+
+.skeleton { padding: 16px; border-top: 1px solid var(--line); }
+.skeleton:first-child { border-top: 0; }
+.skeleton div { height: 12px; border-radius: 6px; background: var(--surface-2); margin: 8px 0; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .5; } }
+
+.fab {
+  position: fixed; right: 16px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+  height: 56px; padding: 0 22px 0 18px; border-radius: 18px; border: 0;
+  background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 16px;
+  display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+@media (min-width: 720px) { .fab { right: calc(50% - 340px + 16px); } }
+
+/* Bottom sheet */
+.backdrop { position: fixed; inset: 0; z-index: 20; background: rgba(10, 15, 22, .45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%; max-width: 640px; max-height: 92vh; overflow-y: auto; background: var(--surface);
+  border-radius: 20px 20px 0 0; padding: 8px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+  animation: rise .22s ease-out;
+}
+@media (min-width: 720px) { .backdrop { align-items: center; } .sheet { border-radius: 20px; padding-bottom: 24px; } }
+@keyframes rise { from { transform: translateY(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet, .skeleton div { animation: none; } }
+.sheet-head { display: flex; align-items: center; gap: 8px; position: sticky; top: -8px; background: var(--surface); padding: 10px 0; z-index: 1; }
+.sheet-head h2 { flex: 1; margin: 0; font-size: 21px; letter-spacing: -0.01em; }
+
+/* Form */
+.form { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; }
+.field > span { font-size: 14px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface-2);
+}
+.field textarea { resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.combo { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; }
+.hint { color: var(--muted); font-size: 13px; }
+.picker {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px;
+  border: 1.5px dashed var(--line); background: var(--surface-2); cursor: pointer;
+}
+.picker svg.i { color: var(--accent); }
+.picker b { display: block; }
+.picker small { color: var(--muted); }
+.files { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.files li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); font-size: 14px; }
+.files li .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files li.removed .name { text-decoration: line-through; color: var(--muted); }
+.files li button { border: 0; background: transparent; color: var(--danger); font-weight: 600; font-size: 14px; padding: 4px; }
+.files li.removed button { color: var(--accent); }
+.form-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 6px; }
+
+/* Details */
+.status-line { margin: 4px 0 16px; }
+.dl { display: grid; grid-template-columns: 120px 1fr; gap: 10px 12px; margin: 0 0 20px; }
+.dl dt { color: var(--muted); font-size: 14px; }
+.dl dd { margin: 0; word-break: break-word; }
+.file-links { display: grid; gap: 8px; margin-bottom: 20px; }
+.file-link {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 12px;
+  background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 15px;
+}
+.file-link span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-link svg.i { color: var(--accent); flex-shrink: 0; }
+.actions { display: grid; gap: 10px; }
+.actions .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.section-title { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+
+/* Menu */
+.menu { display: grid; gap: 4px; }
+.menu a, .menu button {
+  display: flex; align-items: center; gap: 12px; padding: 14px 8px; border-radius: 12px; border: 0;
+  background: transparent; text-decoration: none; color: var(--ink); text-align: left; font-size: 16px;
+}
+.menu a:hover, .menu button:hover { background: var(--surface-2); }
+.menu svg.i { color: var(--muted); }
+
+/* Re-auth dialog & toast */
+.dialog-wrap { position: fixed; inset: 0; z-index: 30; background: rgba(10, 15, 22, .5); display: grid; place-items: center; padding: 24px; }
+.dialog { background: var(--surface); border-radius: 18px; padding: 22px; max-width: 360px; width: 100%; }
+.dialog h3 { margin: 0 0 6px; }
+.dialog p { margin: 0 0 18px; color: var(--muted); }
+.dialog .two { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 40;
+  bottom: calc(90px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 32px);
+  background: var(--ink); color: var(--bg); padding: 12px 16px; border-radius: 12px; font-size: 15px;
+}
+.toast.error { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+
+<!-- Shown until you paste your Google Client ID below -->
+<section id="setup" class="gate" hidden>
+  <div class="gate-card">
+    <img class="logo" src="icon.svg" alt="" />
+    <h1>One step left</h1>
+    <p>Open <code>index.html</code> and paste your Google OAuth Client ID into <code>CLIENT_ID</code> near the top of the script.</p>
+    <ol>
+      <li>Google Cloud Console, then APIs &amp; Services, then Credentials</li>
+      <li>Copy the Web application Client ID</li>
+      <li>Reload this page</li>
+    </ol>
+  </div>
+</section>
+
+<section id="signin" class="gate" hidden>
+  <div class="gate-card">
+    <img class="logo" src="icon.svg" alt="" />
+    <h1>Every bill and warranty, in one place.</h1>
+    <p>Photos and PDFs go into an InvoiceVault folder in your Google Drive. Product details go into a Google Sheet beside them.</p>
+    <button class="btn primary" id="signinBtn">
+      <svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+      Continue with Google
+    </button>
+    <p class="fine">InvoiceVault can only see the files it creates. The rest of your Drive stays private.</p>
+  </div>
+</section>
+
+<section id="app" hidden>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <img class="logo" src="icon.svg" alt="" />
+      <strong>InvoiceVault</strong>
+      <button class="icon-btn" id="menuBtn" aria-label="Menu">
+        <svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="summary" id="summary"></section>
+
+    <div class="controls">
+      <label class="search">
+        <svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Search product, brand, store, serial" aria-label="Search" autocomplete="off" />
+      </label>
+      <div class="chips" id="chips" role="group" aria-label="Warranty status"></div>
+      <div class="selects">
+        <select id="cat" aria-label="Category"></select>
+        <select id="sort" aria-label="Sort">
+          <option value="expiry">Ending soonest</option>
+          <option value="newest">Newest purchase</option>
+          <option value="oldest">Oldest purchase</option>
+          <option value="price">Highest price</option>
+          <option value="name">Name A to Z</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="list" class="list"></div>
+  </main>
+
+  <button class="fab" id="addBtn">
+    <svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+    Add bill
+  </button>
+</section>
+
+<div class="backdrop" id="backdrop" hidden>
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<div class="dialog-wrap" id="reauth" hidden>
+  <div class="dialog" role="alertdialog" aria-modal="true">
+    <h3>Session expired</h3>
+    <p>Google sign-in lasts one hour. Continue to pick up where you left off.</p>
+    <div class="two">
+      <button class="btn" id="reauthCancel">Sign out</button>
+      <button class="btn primary" id="reauthGo">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* =========================================================
+   CONFIG — paste your OAuth Client ID here
+   ========================================================= */
+const CLIENT_ID = '1009459609241-m8sj39d86aphojfcnjmuldlat3t7s9f7.apps.googleusercontent.com';
+
+// drive.file = access ONLY to files this app creates (least privilege).
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const FOLDER_NAME = 'InvoiceVault';
+const SHEET_FILE_NAME = 'InvoiceVault Data';
+const TAB = 'Invoices';
+const HEADERS = ['id', 'product', 'brand', 'category', 'store', 'purchaseDate', 'price', 'warrantyMonths', 'serial', 'notes', 'files', 'createdAt', 'updatedAt'];
+const LAST_COL = 'M'; // 13 columns
+const CATEGORIES = ['Mobile & gadgets', 'Electronics', 'Home appliances', 'Kitchen', 'Furniture', 'Vehicle', 'Clothing & footwear', 'Tools', 'Other'];
+const SOON_DAYS = 30;
+
+const DRIVE = 'https://www.googleapis.com/drive/v3';
+const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
+const SHEETS = 'https://sheets.googleapis.com/v4/spreadsheets';
+
+/* ---------- Helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const qs = (o) => new URLSearchParams(o).toString();
+const enc = encodeURIComponent;
+const DAY = 86400000;
+const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+const fmtDate = (d) => (d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const icon = {
+  clip: '<svg class="i" viewBox="0 0 24 24"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg>',
+  close: '<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  file: '<svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>',
+  image: '<svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>',
+  camera: '<svg class="i" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>',
+  bell: '<svg class="i" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
+  sheet: '<svg class="i" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 9h16M4 15h16M10 3v18"/></svg>',
+  folder: '<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  refresh: '<svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',
+  out: '<svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>',
+  install: '<svg class="i" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>',
+  warn: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
+};
+
+function parseDate(s) {
+  if (!s) return null;
+  const [y, m, d] = String(s).split('-').map(Number);
+  return y && m && d ? new Date(y, m - 1, d) : null;
+}
+function toISO(d) {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function today() { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); }
+function addMonths(date, months) {
+  const d = new Date(date.getFullYear(), date.getMonth() + months, 1);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(date.getDate(), last));
+  return d;
+}
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15);
+    return (c === 'x' ? r : (r & 3) | 8).toString(16);
+  });
+}
+function durationLabel(m) {
+  if (!m) return 'None';
+  if (m % 12 === 0) return `${m / 12} year${m === 12 ? '' : 's'}`;
+  return `${m} month${m === 1 ? '' : 's'}`;
+}
+
+/* Warranty status: the heart of the app */
+function warranty(item) {
+  const p = parseDate(item.purchaseDate);
+  const m = Number(item.warrantyMonths) || 0;
+  if (!p || m <= 0) return { status: 'none', label: 'No warranty', expiry: null, days: null, pct: 0 };
+  const exp = addMonths(p, m);
+  exp.setDate(exp.getDate() - 1); // 1 year from 9 Oct ends on 8 Oct
+  const t = today();
+  const days = Math.round((exp - t) / DAY);
+  const pct = Math.min(100, Math.max(2, ((t - p) / (exp - p || 1)) * 100));
+  if (days < 0) return { status: 'expired', label: 'Expired', expiry: exp, days, pct: 100 };
+  if (days <= SOON_DAYS) return { status: 'soon', label: days === 0 ? 'Ends today' : `${days} day${days === 1 ? '' : 's'} left`, expiry: exp, days, pct };
+  const months = Math.floor(days / 30.44);
+  return { status: 'active', label: months >= 2 ? `${months} months left` : `${days} days left`, expiry: exp, days, pct };
+}
+
+/* ---------- State ---------- */
+const state = {
+  token: null, tokenExp: 0,
+  folderId: null, spreadsheetId: null, tabId: null,
+  items: [], loaded: false,
+  filter: { q: '', status: 'all', category: 'all', sort: 'expiry' },
+};
+let tokenClient = null;
+let pendingAuth = null;
+let reauthPromise = null;
+let installPrompt = null;
+
+/* ---------- Auth (Google Identity Services, token model) ---------- */
+function initGis() {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+    (function wait() {
+      if (window.google?.accounts?.oauth2) {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID, scope: SCOPE, callback: onToken, error_callback: onTokenError,
+        });
+        resolve();
+      } else if (++tries > 100) {
+        reject(new Error('Google sign-in could not load. Check your internet connection and reload.'));
+      } else setTimeout(wait, 100);
+    })();
+  });
+}
+// Must be called directly inside a click handler, or the browser blocks the pop-up.
+function requestToken(silent) {
+  return new Promise((resolve, reject) => {
+    pendingAuth = { resolve, reject };
+    try { tokenClient.requestAccessToken(silent ? { prompt: '' } : {}); }
+    catch (e) { pendingAuth = null; reject(e); }
+  });
+}
+function onToken(resp) {
+  const p = pendingAuth; pendingAuth = null;
+  if (!p) return;
+  if (resp.error) return p.reject(new Error(resp.error_description || resp.error));
+  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) {
+    return p.reject(new Error('Tick the Google Drive permission so InvoiceVault can save your files.'));
+  }
+  setToken(resp.access_token, Number(resp.expires_in) || 3600);
+  p.resolve();
+}
+function onTokenError(err) {
+  const p = pendingAuth; pendingAuth = null;
+  if (!p) return;
+  const msg = err?.type === 'popup_closed' ? 'Sign-in was cancelled.'
+    : err?.type === 'popup_failed_to_open' ? 'The sign-in pop-up was blocked. Allow pop-ups for this site and try again.'
+    : 'Sign-in failed. Try again.';
+  p.reject(new Error(msg));
+}
+function setToken(token, expiresIn) {
+  state.token = token;
+  state.tokenExp = Date.now() + (expiresIn - 60) * 1000;
+  // sessionStorage (not localStorage): the token is gone when the app is closed.
+  try { sessionStorage.setItem('iv.token', JSON.stringify({ token, exp: state.tokenExp })); } catch {}
+}
+function clearToken() {
+  state.token = null; state.tokenExp = 0;
+  try { sessionStorage.removeItem('iv.token'); } catch {}
+}
+function reauth() {
+  if (reauthPromise) return reauthPromise;
+  reauthPromise = new Promise((resolve, reject) => {
+    const box = $('#reauth');
+    box.hidden = false;
+    $('#reauthGo').onclick = () => {
+      requestToken(true).then(() => { box.hidden = true; resolve(); }).catch((e) => toast(e.message, true));
+    };
+    $('#reauthCancel').onclick = () => { box.hidden = true; reject(new Error('Signed out.')); signOut(); };
+  }).finally(() => { reauthPromise = null; });
+  return reauthPromise;
+}
+
+/* ---------- API wrapper ---------- */
+async function api(url, opts = {}, retry = true) {
+  if (!state.token || Date.now() > state.tokenExp) await reauth();
+  const headers = { Authorization: `Bearer ${state.token}`, ...(opts.headers || {}) };
+  let body = opts.body;
+  if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
+  let res;
+  try { res = await fetch(url, { method: opts.method || 'GET', headers, body }); }
+  catch { throw new Error('No internet connection. Check your network and try again.'); }
+  if (res.status === 401 && retry) { clearToken(); await reauth(); return api(url, opts, false); }
+  if (!res.ok) {
+    let msg = `Google returned ${res.status}.`;
+    try { const j = await res.json(); if (j.error?.message) msg = j.error.message; } catch {}
+    throw new Error(msg);
+  }
+  if (res.status === 204) return null;
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('json') ? res.json() : res.text();
+}
+
+/* ---------- Storage layer: Drive folder + Google Sheet ---------- */
+async function ensureFolder() {
+  const q = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+  const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
+  if (r.files?.length) return r.files[0].id;
+  const f = await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } });
+  return f.id;
+}
+async function ensureSheet(folderId) {
+  const q = `name='${SHEET_FILE_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '${folderId}' in parents and trashed=false`;
+  const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
+  let id = r.files?.[0]?.id;
+  let created = false;
+  if (!id) {
+    const f = await api(`${DRIVE}/files?fields=id`, {
+      method: 'POST', json: { name: SHEET_FILE_NAME, mimeType: 'application/vnd.google-apps.spreadsheet', parents: [folderId] },
+    });
+    id = f.id; created = true;
+  }
+  const meta = await api(`${SHEETS}/${id}?fields=sheets.properties(sheetId,title)`);
+  let tab = meta.sheets.find((s) => s.properties.title === TAB)?.properties;
+  if (!tab) {
+    tab = meta.sheets[0].properties;
+    await api(`${SHEETS}/${id}:batchUpdate`, {
+      method: 'POST',
+      json: { requests: [{ updateSheetProperties: {
+        properties: { sheetId: tab.sheetId, title: TAB, gridProperties: { frozenRowCount: 1 } },
+        fields: 'title,gridProperties.frozenRowCount',
+      } }] },
+    });
+    created = true;
+  }
+  if (created) {
+    await api(`${SHEETS}/${id}/values/${enc(`${TAB}!A1:${LAST_COL}1`)}?valueInputOption=RAW`, { method: 'PUT', json: { values: [HEADERS] } });
+  }
+  return { id, tabId: tab.sheetId };
+}
+function rowToItem(row) {
+  const it = {};
+  HEADERS.forEach((h, i) => { it[h] = row[i] ?? ''; });
+  it.price = it.price === '' ? null : Number(it.price);
+  it.warrantyMonths = Number(it.warrantyMonths) || 0;
+  try { it.files = JSON.parse(it.files || '[]'); } catch { it.files = []; }
+  return it;
+}
+function itemToRow(it) {
+  return HEADERS.map((h) => (h === 'files' ? JSON.stringify(it.files || []) : it[h] == null ? '' : String(it[h])));
+}
+async function loadItems() {
+  const r = await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A2:${LAST_COL}`)}`);
+  state.items = (r.values || []).filter((row) => row[0]).map(rowToItem);
+  state.loaded = true;
+}
+// Row positions shift when rows are deleted, so always look up the current row by id.
+async function findRow(id) {
+  const r = await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A:A`)}`);
+  const i = (r.values || []).map((v) => v[0]).indexOf(id);
+  return i < 1 ? null : i + 1;
+}
+async function maybeCompress(file) {
+  // Phone photos are often 4-8 MB. Shrink big JPEG/PNG/WebP so uploads are fast.
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size < 1.5e6) return file;
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    const scale = Math.min(1, 2200 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    URL.revokeObjectURL(url);
+    const out = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85));
+    return out && out.size < file.size ? new File([out], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }) : file;
+  } catch { return file; }
+}
+async function uploadFile(file, data) {
+  const f = await maybeCompress(file);
+  const base = `${data.purchaseDate} ${data.product}`.replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80);
+  const name = `${base} - ${f.name}`;
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify({ name, parents: [state.folderId] })], { type: 'application/json' }));
+  form.append('file', f, name);
+  const r = await api(`${UPLOAD}?uploadType=multipart&fields=id,name,mimeType,webViewLink`, { method: 'POST', body: form });
+  return { id: r.id, name: r.name, mime: r.mimeType, link: r.webViewLink };
+}
+function trashFile(id) {
+  return api(`${DRIVE}/files/${id}?fields=id`, { method: 'PATCH', json: { trashed: true } });
+}
+async function saveItem(existing, data, newFiles, removeIds, onProgress) {
+  const uploaded = [];
+  try {
+    for (let i = 0; i < newFiles.length; i++) {
+      onProgress(`Uploading ${i + 1} of ${newFiles.length}`);
+      uploaded.push(await uploadFile(newFiles[i], data));
+    }
+    onProgress('Saving');
+    const now = new Date().toISOString();
+    if (existing) {
+      const files = existing.files.filter((f) => !removeIds.has(f.id)).concat(uploaded);
+      const item = { ...existing, ...data, files, updatedAt: now };
+      const row = await findRow(existing.id);
+      if (!row) throw new Error('This bill was deleted elsewhere. Refresh to see the latest list.');
+      await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A${row}:${LAST_COL}${row}`)}?valueInputOption=RAW`, {
+        method: 'PUT', json: { values: [itemToRow(item)] },
+      });
+      await Promise.allSettled([...removeIds].map(trashFile));
+    } else {
+      const item = { id: uuid(), ...data, files: uploaded, createdAt: now, updatedAt: now };
+      await api(`${SHEETS}/${state.spreadsheetId}/values/${enc(`${TAB}!A:${LAST_COL}`)}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`, {
+        method: 'POST', json: { values: [itemToRow(item)] },
+      });
+    }
+  } catch (err) {
+    // Compensating action: don't leave orphan files in Drive if the sheet write failed.
+    await Promise.allSettled(uploaded.map((f) => trashFile(f.id)));
+    throw err;
+  }
+  await loadItems();
+}
+async function deleteItem(it) {
+  const row = await findRow(it.id);
+  if (row) {
+    await api(`${SHEETS}/${state.spreadsheetId}:batchUpdate`, {
+      method: 'POST',
+      json: { requests: [{ deleteDimension: { range: { sheetId: state.tabId, dimension: 'ROWS', startIndex: row - 1, endIndex: row } } }] },
+    });
+  }
+  await Promise.allSettled(it.files.map((f) => trashFile(f.id)));
+  await loadItems();
+}
+
+/* ---------- Rendering ---------- */
+function show(id) {
+  for (const s of ['setup', 'signin', 'app']) $('#' + s).hidden = s !== id;
+}
+function fileHref(f) { return f.link || `https://drive.google.com/file/d/${f.id}/view`; }
+
+function renderSummary() {
+  const el = $('#summary');
+  if (!state.loaded) { el.innerHTML = '<h2>Loading your bills</h2><p>Opening your InvoiceVault folder in Google Drive</p>'; return; }
+  const items = state.items;
+  const ws = items.map(warranty);
+  const active = ws.filter((w) => w.status === 'active' || w.status === 'soon').length;
+  const soon = ws.filter((w) => w.status === 'soon').length;
+  const spent = items.reduce((s, it) => s + (it.price || 0), 0);
+  if (!items.length) { el.innerHTML = '<h2>Nothing saved yet</h2><p>Add your first invoice or warranty slip to get started.</p>'; return; }
+  el.innerHTML = `
+    <h2><span class="num">${items.length}</span> bill${items.length === 1 ? '' : 's'}, <span class="num">${active}</span> under warranty</h2>
+    <p>Total recorded spend <span class="num">${inr.format(spent)}</span></p>
+    ${soon ? `<button class="alert" id="soonAlert">${icon.warn}<span><b>${soon} warrant${soon === 1 ? 'y ends' : 'ies end'}</b> within ${SOON_DAYS} days. Check ${soon === 1 ? 'it' : 'them'} before claims close.</span></button>` : ''}`;
+  const a = $('#soonAlert');
+  if (a) a.onclick = () => { state.filter.status = 'soon'; renderAll(); };
+}
+
+function renderChips() {
+  const counts = { all: state.items.length, soon: 0, active: 0, expired: 0, none: 0 };
+  state.items.forEach((it) => {
+    const s = warranty(it).status;
+    counts[s]++;
+    if (s === 'soon') counts.active++;
+  });
+  const chips = [['all', 'All'], ['soon', 'Ending soon'], ['active', 'Under warranty'], ['expired', 'Expired'], ['none', 'No warranty']];
+  $('#chips').innerHTML = chips.map(([k, l]) =>
+    `<button class="chip" data-status="${k}" aria-pressed="${state.filter.status === k}">${l}<span class="count num">${counts[k]}</span></button>`).join('');
+  const cats = [...new Set(state.items.map((i) => i.category).filter(Boolean))].sort();
+  if (state.filter.category !== 'all' && !cats.includes(state.filter.category)) state.filter.category = 'all';
+  $('#cat').innerHTML = `<option value="all">All categories</option>` +
+    cats.map((c) => `<option value="${esc(c)}" ${c === state.filter.category ? 'selected' : ''}>${esc(c)}</option>`).join('');
+  $('#sort').value = state.filter.sort;
+}
+
+function visibleItems() {
+  const { q, status, category, sort } = state.filter;
+  const needle = q.trim().toLowerCase();
+  let arr = state.items.map((it) => ({ it, w: warranty(it) }));
+  if (needle) arr = arr.filter(({ it }) => [it.product, it.brand, it.store, it.serial, it.notes, it.category].join(' ').toLowerCase().includes(needle));
+  if (status === 'active') arr = arr.filter(({ w }) => w.status === 'active' || w.status === 'soon');
+  else if (status !== 'all') arr = arr.filter(({ w }) => w.status === status);
+  if (category !== 'all') arr = arr.filter(({ it }) => it.category === category);
+  const rank = { soon: 0, active: 1, expired: 2, none: 3 };
+  const sorters = {
+    expiry: (a, b) => rank[a.w.status] - rank[b.w.status] ||
+      (a.w.status === 'expired' ? b.w.days - a.w.days : (a.w.days ?? 0) - (b.w.days ?? 0)),
+    newest: (a, b) => (b.it.purchaseDate || '').localeCompare(a.it.purchaseDate || ''),
+    oldest: (a, b) => (a.it.purchaseDate || '').localeCompare(b.it.purchaseDate || ''),
+    price: (a, b) => (b.it.price || 0) - (a.it.price || 0),
+    name: (a, b) => a.it.product.localeCompare(b.it.product),
+  };
+  return arr.sort(sorters[sort] || sorters.expiry);
+}
+
+function lifeBar(w) {
+  if (w.status === 'none') return `<div class="life s-none"><div class="life-meta"><b>No warranty</b></div></div>`;
+  const right = w.status === 'expired' ? `Ended ${fmtDate(w.expiry)}` : `Until ${fmtDate(w.expiry)}`;
+  return `<div class="life s-${w.status}">
+    <div class="life-track" role="img" aria-label="Warranty ${Math.round(w.pct)}% used"><div class="life-fill" style="width:${w.pct.toFixed(1)}%"></div></div>
+    <div class="life-meta"><b>${esc(w.label)}</b><span>${right}</span></div>
+  </div>`;
+}
+
+function renderList() {
+  const el = $('#list');
+  if (!state.loaded) {
+    el.innerHTML = Array.from({ length: 4 }, () => '<div class="skeleton"><div style="width:55%"></div><div style="width:35%"></div><div style="width:100%"></div></div>').join('');
+    return;
+  }
+  if (!state.items.length) {
+    el.innerHTML = `<div class="empty"><h3>Your vault is empty</h3><p>Snap a photo of a bill or pick a PDF. It goes straight into your Google Drive.</p><button class="btn primary" data-add>${icon.camera} Add your first bill</button></div>`;
+    return;
+  }
+  const rows = visibleItems();
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty"><h3>No bills match</h3><p>Try a different search or filter.</p><button class="btn" data-clear>Clear filters</button></div>`;
+    return;
+  }
+  el.innerHTML = rows.map(({ it, w }) => {
+    const sub = [it.brand, it.store].filter(Boolean);
+    return `<button class="row" data-id="${esc(it.id)}">
+      <div class="row-top"><span class="row-title">${esc(it.product)}</span>${it.price != null ? `<span class="row-amount num">${inr.format(it.price)}</span>` : ''}</div>
+      <div class="row-sub">
+        ${sub.length ? `<span>${sub.map(esc).join(', ')}</span>` : ''}
+        <span class="num">${fmtDate(parseDate(it.purchaseDate))}</span>
+        ${it.files.length ? `<span class="clip">${icon.clip}${it.files.length}</span>` : ''}
+      </div>
+      ${lifeBar(w)}
+    </button>`;
+  }).join('');
+}
+
+function renderAll() { renderSummary(); renderChips(); renderList(); }
+
+/* ---------- Sheets (bottom panels) ---------- */
+function openSheet(html) {
+  $('#sheet').innerHTML = html;
+  $('#backdrop').hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('#sheet').scrollTop = 0;
+}
+function closeSheet() {
+  $('#backdrop').hidden = true;
+  $('#sheet').innerHTML = '';
+  document.body.style.overflow = '';
+}
+const head = (title) => `<div class="sheet-head"><h2>${title}</h2><button class="icon-btn" data-close aria-label="Close">${icon.close}</button></div>`;
+
+function openDetail(it) {
+  const w = warranty(it);
+  const rows = [
+    ['Brand', it.brand], ['Category', it.category], ['Store', it.store],
+    ['Purchased', fmtDate(parseDate(it.purchaseDate))],
+    ['Price', it.price != null ? inr.format(it.price) : ''],
+    ['Warranty', durationLabel(it.warrantyMonths)],
+    ['Serial / IMEI', it.serial], ['Notes', it.notes],
+  ].filter(([, v]) => v);
+  const files = it.files.length
+    ? it.files.map((f) => `<a class="file-link" href="${esc(fileHref(f))}" target="_blank" rel="noopener">${/^image\//.test(f.mime) ? icon.image : icon.file}<span>${esc(f.name)}</span></a>`).join('')
+    : '<p class="hint">No files attached. Edit this bill to add the invoice or warranty slip.</p>';
+  const canRemind = w.status === 'active' || w.status === 'soon';
+  openSheet(`${head(esc(it.product))}
+    <div class="status-line">${lifeBar(w)}</div>
+    <dl class="dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <p class="section-title">Documents</p>
+    <div class="file-links">${files}</div>
+    <div class="actions">
+      ${canRemind ? `<a class="btn" href="${esc(calendarLink(it, w))}" target="_blank" rel="noopener">${icon.bell} Add calendar reminder</a>` : ''}
+      <div class="two">
+        <button class="btn danger" id="delBtn">Delete</button>
+        <button class="btn primary" id="editBtn">Edit</button>
+      </div>
+    </div>`);
+  $('#editBtn').onclick = () => openForm(it);
+  $('#delBtn').onclick = async (e) => {
+    if (!confirm(`Delete "${it.product}"? Its files move to Google Drive trash, where you can restore them for 30 days.`)) return;
+    e.target.disabled = true; e.target.textContent = 'Deleting';
+    try { await deleteItem(it); closeSheet(); renderAll(); toast('Bill deleted'); }
+    catch (err) { toast(err.message, true); e.target.disabled = false; e.target.textContent = 'Delete'; }
+  };
+}
+
+// Reminder via a Google Calendar link: no extra permission needed.
+function calendarLink(it, w) {
+  let d = new Date(w.expiry); d.setDate(d.getDate() - 14);
+  if (d < today()) d = today();
+  const e = new Date(d); e.setDate(e.getDate() + 1);
+  const f = (x) => toISO(x).replace(/-/g, '');
+  const details = [
+    `Warranty for ${it.product}${it.brand ? ` (${it.brand})` : ''} ends on ${fmtDate(w.expiry)}.`,
+    it.serial ? `Serial / IMEI: ${it.serial}` : '',
+    it.store ? `Bought from: ${it.store}` : '',
+    'Check the product and raise any claim before then.',
+  ].filter(Boolean).join('\n');
+  return 'https://calendar.google.com/calendar/render?' + qs({ action: 'TEMPLATE', text: `Warranty ending: ${it.product}`, dates: `${f(d)}/${f(e)}`, details });
+}
+
+function openForm(existing) {
+  const it = existing || { product: '', brand: '', category: '', store: '', purchaseDate: toISO(today()), price: null, warrantyMonths: 12, serial: '', notes: '', files: [] };
+  const inYears = it.warrantyMonths > 0 && it.warrantyMonths % 12 === 0;
+  const pending = [];
+  const removeIds = new Set();
+  openSheet(`${head(existing ? 'Edit bill' : 'Add bill')}
+    <form class="form" id="billForm" novalidate>
+      <label class="field"><span>Product name</span>
+        <input name="product" required maxlength="120" value="${esc(it.product)}" placeholder="e.g. Samsung 43 inch TV" autocomplete="off" /></label>
+      <div class="row2">
+        <label class="field"><span>Brand</span><input name="brand" maxlength="60" value="${esc(it.brand)}" autocomplete="off" /></label>
+        <label class="field"><span>Category</span><select name="category">
+          ${['', ...CATEGORIES, ...(it.category && !CATEGORIES.includes(it.category) ? [it.category] : [])]
+            .map((c) => `<option value="${esc(c)}" ${c === it.category ? 'selected' : ''}>${c ? esc(c) : 'Choose'}</option>`).join('')}
+        </select></label>
+      </div>
+      <label class="field"><span>Store or seller</span><input name="store" maxlength="80" value="${esc(it.store)}" placeholder="e.g. Croma, Amazon" autocomplete="off" /></label>
+      <div class="row2">
+        <label class="field"><span>Purchase date</span><input type="date" name="purchaseDate" required value="${esc(it.purchaseDate)}" max="${toISO(today())}" /></label>
+        <label class="field"><span>Price (₹)</span><input type="number" name="price" min="0" step="0.01" inputmode="decimal" value="${it.price ?? ''}" /></label>
+      </div>
+      <div class="field"><span>Warranty period</span>
+        <div class="combo">
+          <input type="number" name="wNum" min="0" max="600" inputmode="numeric" aria-label="Warranty length" value="${inYears ? it.warrantyMonths / 12 : it.warrantyMonths}" />
+          <select name="wUnit" aria-label="Unit"><option value="12" ${inYears ? 'selected' : ''}>Years</option><option value="1" ${!inYears ? 'selected' : ''}>Months</option></select>
+        </div>
+        <small class="hint" id="expHint"></small>
+      </div>
+      <label class="field"><span>Serial or IMEI number</span><input name="serial" maxlength="80" value="${esc(it.serial)}" autocomplete="off" /></label>
+      <label class="field"><span>Notes</span><textarea name="notes" rows="2" maxlength="1000" placeholder="Extended warranty, service centre number, etc.">${esc(it.notes)}</textarea></label>
+      <div class="field"><span>Invoice and warranty slip</span>
+        ${it.files.length ? `<ul class="files" id="oldFiles">${it.files.map((f) => `<li data-fid="${esc(f.id)}"><span class="name">${esc(f.name)}</span><button type="button">Remove</button></li>`).join('')}</ul>` : ''}
+        <label class="picker">
+          <input type="file" id="fileInput" multiple accept="image/*,application/pdf" hidden />
+          ${icon.camera}<span><b>Add photos or PDFs</b><small>Take a photo or choose files</small></span>
+        </label>
+        <ul class="files" id="newFiles"></ul>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="saveBtn">${existing ? 'Save changes' : 'Save bill'}</button>
+      </div>
+    </form>`);
+
+  const form = $('#billForm');
+  const updateHint = () => {
+    const months = Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value));
+    const w = warranty({ purchaseDate: form.purchaseDate.value, warrantyMonths: months });
+    $('#expHint').textContent = w.expiry ? `Covered until ${fmtDate(w.expiry)}` : 'No warranty';
+  };
+  ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (['wNum', 'wUnit', 'purchaseDate'].includes(e.target.name)) updateHint(); }));
+  updateHint();
+
+  const renderNew = () => {
+    $('#newFiles').innerHTML = pending.map((f, i) => `<li><span class="name">${esc(f.name)}</span><span class="hint num">${(f.size / 1e6).toFixed(1)} MB</span><button type="button" data-i="${i}">Remove</button></li>`).join('');
+  };
+  $('#fileInput').onchange = (e) => {
+    for (const f of e.target.files) {
+      if (f.size > 25e6) { toast(`${f.name} is over 25 MB. Choose a smaller file.`, true); continue; }
+      pending.push(f);
+    }
+    e.target.value = '';
+    renderNew();
+  };
+  $('#newFiles').onclick = (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (b) { pending.splice(Number(b.dataset.i), 1); renderNew(); }
+  };
+  const old = $('#oldFiles');
+  if (old) old.onclick = (e) => {
+    const li = e.target.closest('li'); if (!li || e.target.tagName !== 'BUTTON') return;
+    const id = li.dataset.fid;
+    if (removeIds.has(id)) { removeIds.delete(id); li.classList.remove('removed'); e.target.textContent = 'Remove'; }
+    else { removeIds.add(id); li.classList.add('removed'); e.target.textContent = 'Undo'; }
+  };
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const product = form.product.value.trim();
+    if (!product) { toast('Enter a product name.', true); form.product.focus(); return; }
+    if (!form.purchaseDate.value) { toast('Enter the purchase date.', true); form.purchaseDate.focus(); return; }
+    const priceRaw = form.price.value.trim();
+    const data = {
+      product,
+      brand: form.brand.value.trim(),
+      category: form.category.value,
+      store: form.store.value.trim(),
+      purchaseDate: form.purchaseDate.value,
+      price: priceRaw === '' ? null : Math.max(0, Number(priceRaw)),
+      warrantyMonths: Math.max(0, Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value))),
+      serial: form.serial.value.trim(),
+      notes: form.notes.value.trim(),
+    };
+    const btn = $('#saveBtn');
+    const label = btn.textContent;
+    btn.disabled = true;
+    try {
+      await saveItem(existing, data, pending, removeIds, (msg) => { btn.textContent = msg; });
+      closeSheet(); renderAll();
+      toast(existing ? 'Changes saved' : 'Bill saved');
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false; btn.textContent = label;
+    }
+  };
+}
+
+function openMenu() {
+  openSheet(`${head('InvoiceVault')}
+    <div class="menu">
+      <a href="https://docs.google.com/spreadsheets/d/${esc(state.spreadsheetId)}" target="_blank" rel="noopener">${icon.sheet} Open data sheet in Google Sheets</a>
+      <a href="https://drive.google.com/drive/folders/${esc(state.folderId)}" target="_blank" rel="noopener">${icon.folder} Open folder in Google Drive</a>
+      <button id="mRefresh">${icon.refresh} Refresh</button>
+      ${installPrompt ? `<button id="mInstall">${icon.install} Install app on this device</button>` : ''}
+      <button id="mOut">${icon.out} Sign out</button>
+    </div>`);
+  $('#mRefresh').onclick = async () => {
+    closeSheet(); state.loaded = false; renderAll();
+    try { await loadItems(); } catch (e) { toast(e.message, true); state.loaded = true; }
+    renderAll();
+  };
+  $('#mOut').onclick = () => { closeSheet(); signOut(); };
+  const ins = $('#mInstall');
+  if (ins) ins.onclick = async () => { closeSheet(); installPrompt.prompt(); installPrompt = null; };
+}
+
+let toastTimer;
+function toast(msg, isError = false) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, isError ? 5000 : 2500);
+}
+
+/* ---------- Lifecycle ---------- */
+async function startApp() {
+  show('app');
+  state.loaded = false;
+  renderAll();
+  try {
+    state.folderId = await ensureFolder();
+    const s = await ensureSheet(state.folderId);
+    state.spreadsheetId = s.id; state.tabId = s.tabId;
+    await loadItems();
+    renderAll();
+  } catch (err) {
+    if (!state.token) return; // signed out during load
+    toast(err.message, true);
+    state.loaded = true; renderAll();
+  }
+}
+function signOut() {
+  clearToken();
+  Object.assign(state, { folderId: null, spreadsheetId: null, tabId: null, items: [], loaded: false });
+  show('signin');
+}
+
+async function boot() {
+  if (CLIENT_ID.startsWith('PASTE_')) { show('setup'); return; }
+  try { await initGis(); }
+  catch (e) { show('signin'); toast(e.message, true); return; }
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('iv.token') || 'null'); } catch {}
+  if (saved && saved.exp > Date.now() + 60000) {
+    state.token = saved.token; state.tokenExp = saved.exp;
+    startApp();
+  } else show('signin');
+}
+
+/* ---------- Events ---------- */
+$('#signinBtn').onclick = () => {
+  if (!tokenClient) { toast('Google sign-in is still loading. Try again in a moment.', true); return; }
+  requestToken(false).then(startApp).catch((e) => toast(e.message, true));
+};
+$('#addBtn').onclick = () => openForm(null);
+$('#menuBtn').onclick = openMenu;
+let qTimer;
+$('#q').oninput = (e) => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.filter.q = e.target.value; renderList(); }, 120); };
+$('#cat').onchange = (e) => { state.filter.category = e.target.value; renderList(); };
+$('#sort').onchange = (e) => { state.filter.sort = e.target.value; renderList(); };
+$('#chips').onclick = (e) => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  state.filter.status = b.dataset.status; renderChips(); renderList();
+};
+$('#list').onclick = (e) => {
+  if (e.target.closest('[data-add]')) return openForm(null);
+  if (e.target.closest('[data-clear]')) {
+    state.filter = { ...state.filter, q: '', status: 'all', category: 'all' };
+    $('#q').value = ''; renderChips(); renderList(); return;
+  }
+  const row = e.target.closest('.row');
+  if (row) { const it = state.items.find((i) => i.id === row.dataset.id); if (it) openDetail(it); }
+};
+$('#backdrop').onclick = (e) => { if (e.target.id === 'backdrop' || e.target.closest('[data-close]')) closeSheet(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('#backdrop').hidden) closeSheet(); });
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+boot();
+</script>
+</body>
+</html>
