@@ -1,5 +1,5 @@
 // Caches only the app shell. Your bills are never cached here: they stay in Google Drive.
-const CACHE = 'kagaz-v7';
+const CACHE = 'kagaz-v13';
 const SHARE_CACHE = 'kagaz-shared';
 const SHELL = ['./', './index.html', './config.js', './manifest.webmanifest', './icon.svg', './icon-192.png', './icon-512.png'];
 
