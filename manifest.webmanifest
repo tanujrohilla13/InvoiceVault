@@ -1,7 +1,7 @@
 {
-  "name": "InvoiceVault",
-  "short_name": "InvoiceVault",
-  "description": "Invoices and warranty slips in one place, stored in your Google Drive.",
+  "name": "Kagaz",
+  "short_name": "Kagaz",
+  "description": "Bills, warranties and personal documents in one place, stored in your Google Drive.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

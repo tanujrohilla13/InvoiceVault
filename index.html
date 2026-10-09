@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>InvoiceVault</title>
+<title>Kagaz</title>
 <meta name="description" content="Bills, warranties and personal documents in one place, stored in your own Google Drive." />
 <meta name="theme-color" content="#eef1f5" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#0f141b" media="(prefers-color-scheme: dark)" />
@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="config.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
@@ -304,7 +305,19 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 .menu .label { font-size: 13px; color: var(--muted); padding: 14px 8px 4px; }
 .menu .state { margin-left: auto; color: var(--muted); font-size: 14px; }
 .toast { z-index: 60; }
-</style>
+
+/* Share picker */
+.pick-head { display: flex; justify-content: space-between; align-items: center; }
+.pick-head .section-title { margin: 0; }
+.pick { list-style: none; margin: 8px 0 18px; padding: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pick li + li { border-top: 1px solid var(--line); }
+.pick label { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; min-height: 48px; }
+.pick input { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+.pick input:disabled + .k { color: var(--muted); }
+.pick .k { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick .v { margin-left: auto; color: var(--muted); font-size: 14px; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; flex-shrink: 0; }
+.msg-preview { white-space: pre-wrap; word-break: break-word; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin: 8px 0 18px; font-size: 15px; }
+.files li .name small{white-space:normal}</style>
 </head>
 <body>
 
@@ -312,7 +325,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
   <div class="gate-card">
     <img class="logo" src="icon.svg" alt="" />
     <h1>One step left</h1>
-    <p>Open <code>index.html</code> and paste your Google OAuth Client ID into <code>CLIENT_ID</code> near the top of the script.</p>
+    <p>Open <code>config.js</code> and paste your Google OAuth Client ID into <code>clientId</code>.</p>
   </div>
 </section>
 
@@ -320,12 +333,13 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
   <div class="gate-card">
     <img class="logo" src="icon.svg" alt="" />
     <h1>Bills, warranties and documents, in one place.</h1>
-    <p>Photos and PDFs go into an InvoiceVault folder in your Google Drive. Details go into a Google Sheet beside them.</p>
+    <p>Photos and PDFs go into a Kagaz folder in your Google Drive. Details go into a Google Sheet beside them.</p>
     <button class="btn primary" id="signinBtn">
       <svg class="i" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
-      Continue with Google
+      <span id="signinLabel">Continue with Google</span>
     </button>
-    <p class="fine">InvoiceVault can only see the files it creates. The rest of your Drive stays private.</p>
+    <button class="linkbtn" id="switchAcct" hidden>Use a different Google account</button>
+    <p class="fine">Kagaz can only see the files it creates. The rest of your Drive stays private.</p>
   </div>
 </section>
 
@@ -333,7 +347,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
   <header class="topbar" id="topbar">
     <div class="topbar-inner">
       <img class="logo" src="icon.svg" alt="" />
-      <strong>InvoiceVault</strong>
+      <strong>Kagaz</strong>
       <button class="icon-btn" id="menuBtn" aria-label="Menu">
         <svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -397,7 +411,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 <div class="lock" id="lock" hidden>
   <div class="lock-card">
     <img class="logo" src="icon.svg" alt="" />
-    <h2>InvoiceVault is locked</h2>
+    <h2>Kagaz is locked</h2>
     <div id="lockBody"></div>
   </div>
 </div>
@@ -408,12 +422,20 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 /* =========================================================
    CONFIG
    ========================================================= */
-const CLIENT_ID = '1009459609241-m8sj39d86aphojfcnjmuldlat3t7s9f7.apps.googleusercontent.com';
+// Values come from config.js so you can change them without touching this file.
+const CFG = window.PAPERNEST_CONFIG || {};
+const CLIENT_ID = CFG.clientId || 'PASTE_YOUR_CLIENT_ID';
+const AUTH_SERVER = String(CFG.authServer || '').trim().replace(/\/$/, '');
+const SESSION_DAYS = 30;
+const APP_NAME = 'Kagaz';
 
 // drive.file = access ONLY to files this app creates (least privilege).
 const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-const FOLDER_NAME = 'InvoiceVault';
-const SHEET_FILE_NAME = 'InvoiceVault Data';
+const FOLDER_NAME = 'Kagaz';
+const SHEET_FILE_NAME = 'Kagaz Data';
+// Older names of the app. Found folders and sheets are renamed automatically, data kept.
+const LEGACY_FOLDERS = ['PaperNest', 'InvoiceVault'];
+const LEGACY_SHEETS = ['PaperNest Data', 'InvoiceVault Data'];
 const SETTINGS_TAB = 'Settings';
 const COL = {
   bills: { tab: 'Invoices', last: 'M', headers: ['id', 'product', 'brand', 'category', 'store', 'purchaseDate', 'price', 'warrantyMonths', 'serial', 'notes', 'files', 'createdAt', 'updatedAt'] },
@@ -453,7 +475,118 @@ const enc = encodeURIComponent;
 const DAY = 86400000;
 const inr = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 const fmtDate = (d) => (d ? d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
-const typeInfo = (t) => DOC_TYPES.find((d) => d.t === t) || { t, g: 'Other', exp: true, soon: 30 };
+const typeInfo = (t) => allDocTypes().find((d) => d.t === t) || { t, g: 'Other', exp: true, soon: 30 };
+const NEW = '__new__';
+function parseList(key) { try { const v = JSON.parse(state.settings[key] || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } }
+const customCats = () => parseList('customCategories');
+const customTypes = () => parseList('customDocTypes');
+// Your own entries sit before "Other", which always stays last.
+const allCategories = () => [...CATEGORIES.filter((c) => c !== 'Other'), ...customCats(), 'Other'];
+const allDocTypes = () => [...DOC_TYPES, ...customTypes()];
+const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+function categoryOptions(selected) {
+  const list = allCategories();
+  if (selected && !list.includes(selected)) list.push(selected);
+  return ['<option value="">Choose</option>', ...list.map((c) => `<option value="${esc(c)}" ${c === selected ? 'selected' : ''}>${esc(c)}</option>`),
+    `<option value="${NEW}">+ Add new category</option>`].join('');
+}
+function docTypeOptions(selected) {
+  const types = allDocTypes();
+  const groups = GROUPS.map((g) => {
+    const opts = types.filter((t) => t.g === g);
+    if (selected && g === 'Other' && !types.some((t) => t.t === selected)) opts.push({ t: selected });
+    return opts.length ? `<optgroup label="${g}">${opts.map((t) => `<option value="${esc(t.t)}" ${t.t === selected ? 'selected' : ''}>${esc(t.t)}</option>`).join('')}</optgroup>` : '';
+  }).join('');
+  return `<option value="">Choose</option>${groups}<option value="${NEW}">+ Add new document type</option>`;
+}
+async function saveList(key, list) {
+  const before = state.settings[key];
+  state.settings[key] = JSON.stringify(list);
+  try { await saveSettings(); } catch (err) { if (before === undefined) delete state.settings[key]; else state.settings[key] = before; throw err; }
+}
+function askNewCategory() {
+  return new Promise((resolve) => {
+    openDialog(`<h3>New category</h3><p>It will show in the category list for all your bills.</p>
+      <form id="nc"><input class="inp" id="ncName" maxlength="40" placeholder="e.g. Gym equipment" autocomplete="off" />
+      <div class="two"><button type="button" class="btn" id="ncCancel">Cancel</button><button class="btn primary" id="ncAdd">Add category</button></div></form>`);
+    $('#ncName').focus();
+    $('#ncCancel').onclick = () => { closeDialog(); resolve(null); };
+    $('#nc').onsubmit = async (e) => {
+      e.preventDefault();
+      const name = $('#ncName').value.trim().replace(/\s+/g, ' ');
+      if (!name) return toast('Enter a category name.', true);
+      const existing = allCategories().find((c) => sameName(c, name));
+      if (existing) { closeDialog(); toast(`"${existing}" is already in the list`); return resolve(existing); }
+      const btn = $('#ncAdd'); btn.disabled = true; btn.textContent = 'Adding';
+      try { await saveList('customCategories', [...customCats(), name]); closeDialog(); toast('Category added'); resolve(name); }
+      catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Add category'; }
+    };
+  });
+}
+function askNewDocType() {
+  return new Promise((resolve) => {
+    openDialog(`<h3>New document type</h3><p>For example: Gas connection, Ration card, Gym membership.</p>
+      <form id="nt">
+        <input class="inp" id="ntName" maxlength="40" placeholder="Document type name" autocomplete="off" />
+        <select class="inp" id="ntGroup" aria-label="Group">${GROUPS.map((g) => `<option ${g === 'Other' ? 'selected' : ''}>${g}</option>`).join('')}</select>
+        <label class="check" style="background:var(--accent-soft)"><input type="checkbox" id="ntExp" checked style="accent-color:var(--accent)" /><span><b>It has an expiry date</b><small>Get a renewal alert before it expires.</small></span></label>
+        <div id="ntSoonRow"><input class="inp" id="ntSoon" type="number" min="1" max="365" value="30" inputmode="numeric" aria-label="Days before expiry" /><p class="hint" style="margin:-6px 0 14px">Days before expiry to start reminding you</p></div>
+        <div class="two"><button type="button" class="btn" id="ntCancel">Cancel</button><button class="btn primary" id="ntAdd">Add type</button></div>
+      </form>`);
+    $('#ntName').focus();
+    $('#ntExp').onchange = (e) => { $('#ntSoonRow').hidden = !e.target.checked; };
+    $('#ntCancel').onclick = () => { closeDialog(); resolve(null); };
+    $('#nt').onsubmit = async (e) => {
+      e.preventDefault();
+      const name = $('#ntName').value.trim().replace(/\s+/g, ' ');
+      if (!name) return toast('Enter a name for the document type.', true);
+      const existing = allDocTypes().find((t) => sameName(t.t, name));
+      if (existing) { closeDialog(); toast(`"${existing.t}" is already in the list`); return resolve(existing.t); }
+      const exp = $('#ntExp').checked;
+      const soon = Math.min(365, Math.max(1, Math.round(Number($('#ntSoon').value) || 30)));
+      const btn = $('#ntAdd'); btn.disabled = true; btn.textContent = 'Adding';
+      try {
+        await saveList('customDocTypes', [...customTypes(), { t: name, g: $('#ntGroup').value, exp, soon: exp ? soon : 30 }]);
+        closeDialog(); toast('Document type added'); resolve(name);
+      } catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Add type'; }
+    };
+  });
+}
+// Turns the "+ Add new" option in a select into a dialog, then selects the new entry.
+function wireAddNew(select, ask, optionsFn, after) {
+  let prev = select.value === NEW ? '' : select.value;
+  select.addEventListener('change', async () => {
+    if (select.value !== NEW) { prev = select.value; return; }
+    const name = await ask();
+    select.innerHTML = optionsFn(name || prev);
+    prev = select.value;
+    if (after) after();
+  });
+}
+function openListsManager() {
+  const cats = customCats(), types = customTypes();
+  const item = (label, sub, key, i) => `<li><span class="name">${esc(label)}${sub ? `<br><small class="hint">${esc(sub)}</small>` : ''}</span><button type="button" data-key="${key}" data-i="${i}">Remove</button></li>`;
+  openSheet(`${head('Categories and types')}
+    <p class="sheet-sub">Add your own. The built-in ones always stay. Removing an entry doesn't change bills or documents that already use it.</p>
+    <p class="section-title">Your bill categories</p>
+    ${cats.length ? `<ul class="files" id="lists">${cats.map((c, i) => item(c, '', 'customCategories', i)).join('')}</ul>` : '<p class="hint">None yet.</p>'}
+    <button class="btn" id="addCat" style="width:100%;margin:10px 0 22px">+ Add category</button>
+    <p class="section-title">Your document types</p>
+    ${types.length ? `<ul class="files" id="lists2">${types.map((t, i) => item(t.t, `${t.g}, ${t.exp ? `reminds ${t.soon} days before expiry` : 'no expiry'}`, 'customDocTypes', i)).join('')}</ul>` : '<p class="hint">None yet.</p>'}
+    <button class="btn" id="addType" style="width:100%;margin-top:10px">+ Add document type</button>`);
+  $('#addCat').onclick = async () => { if (await askNewCategory()) openListsManager(); };
+  $('#addType').onclick = async () => { if (await askNewDocType()) openListsManager(); };
+  $('#sheet').querySelectorAll('button[data-key]').forEach((b) => {
+    b.onclick = async () => {
+      const key = b.dataset.key, list = key === 'customCategories' ? customCats() : customTypes();
+      const [removed] = list.splice(Number(b.dataset.i), 1);
+      const name = typeof removed === 'string' ? removed : removed.t;
+      if (!confirm(`Remove "${name}" from the list?`)) return;
+      b.disabled = true;
+      try { await saveList(key, list); toast('Removed'); openListsManager(); } catch (err) { toast(err.message, true); b.disabled = false; }
+    };
+  });
+}
 const isImage = (f) => /^image\//.test(f.mime || '');
 const rand = (n) => crypto.getRandomValues(new Uint8Array(n));
 const b64 = (buf) => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
@@ -472,6 +605,9 @@ const icon = {
   warn: '<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>',
   lock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   key: '<svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>',
+  share: '<svg class="i" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
+  text: '<svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+  tag: '<svg class="i" viewBox="0 0 24 24"><path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/></svg>',
   finger: '<svg class="i" viewBox="0 0 24 24"><path d="M12 11v4a6 6 0 0 1-1.5 4"/><path d="M8 11a4 4 0 0 1 8 0v3"/><path d="M5 14v-3a7 7 0 0 1 14 0v2"/><path d="M16 17a10 10 0 0 1-1 4"/></svg>',
 };
 
@@ -559,14 +695,84 @@ function initGis() {
 function requestToken(silent) {
   return new Promise((resolve, reject) => {
     pendingAuth = { resolve, reject };
-    try { tokenClient.requestAccessToken(silent ? { prompt: '' } : {}); } catch (e) { pendingAuth = null; reject(e); }
+    const hint = getHint();
+    const cfg = silent || hint ? { prompt: '' } : {};
+    if (hint) cfg.hint = hint; // pre-selects your account, so returning users skip the account picker
+    try { tokenClient.requestAccessToken(cfg); } catch (e) { pendingAuth = null; reject(e); }
   });
 }
+// 30-day mode: get a one-time code, and the sign-in helper turns it into a long-lived session.
+function requestSession() {
+  return new Promise((resolve, reject) => {
+    pendingAuth = { resolve, reject };
+    const cfg = { client_id: CLIENT_ID, scope: SCOPE, ux_mode: 'popup', prompt: 'consent', callback: onCode, error_callback: onTokenError };
+    const hint = getHint();
+    if (hint) cfg.hint = hint;
+    try { google.accounts.oauth2.initCodeClient(cfg).requestCode(); } catch (e) { pendingAuth = null; reject(e); }
+  });
+}
+// One entry point for "sign in" buttons: picks 30-day or 1-hour mode.
+const signIn = () => (AUTH_SERVER ? requestSession() : requestToken(false));
+async function onCode(resp) {
+  const p = pendingAuth; pendingAuth = null;
+  if (!p) return;
+  if (resp.error) return p.reject(new Error(resp.error_description || resp.error));
+  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) return p.reject(new Error(`Tick the Google Drive permission so ${APP_NAME} can save your files.`));
+  try {
+    const j = await authCall('/exchange', { code: resp.code });
+    if (!j.rt) throw new Error('Google didn\'t allow a long sign-in. Remove Kagaz at myaccount.google.com/permissions, then sign in again.');
+    setSession({ rt: j.rt, created: Date.now() });
+    setToken(j.access_token, Number(j.expires_in) || 3600);
+    p.resolve();
+  } catch (err) { p.reject(err); }
+}
+async function authCall(path, body) {
+  let r;
+  try { r = await fetch(AUTH_SERVER + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
+  catch { const e = new Error('Couldn\'t reach the sign-in helper. Check your internet connection.'); e.network = true; throw e; }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || `Sign-in helper returned ${r.status}.`); e.status = r.status; throw e; }
+  return j;
+}
+function getSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem('iv.session') || 'null');
+    if (!s?.rt) return null;
+    if (Date.now() - s.created > SESSION_DAYS * DAY) { clearSession(); return null; } // 30 days are up
+    return s;
+  } catch { return null; }
+}
+function setSession(s) { try { localStorage.setItem('iv.session', JSON.stringify(s)); } catch {} }
+function clearSession() { try { localStorage.removeItem('iv.session'); } catch {} }
+let refreshing = null;
+// Renews the 1-hour access token silently. No pop-up, no tap.
+function refreshAccess() {
+  if (refreshing) return refreshing;
+  refreshing = (async () => {
+    const s = getSession();
+    if (!s) throw new Error('Sign in again.');
+    try {
+      const j = await authCall('/refresh', { rt: s.rt });
+      setToken(j.access_token, Number(j.expires_in) || 3600);
+    } catch (err) {
+      if (err.status === 401) clearSession(); // revoked or expired at Google
+      throw err;
+    }
+  })().finally(() => { refreshing = null; });
+  return refreshing;
+}
+async function ensureToken() {
+  if (AUTH_SERVER && getSession()) {
+    try { await refreshAccess(); return; } catch (err) { if (err.network) throw err; }
+  }
+  await reauth();
+}
+function sessionDaysLeft() { const s = getSession(); return s ? Math.max(0, Math.ceil((s.created + SESSION_DAYS * DAY - Date.now()) / DAY)) : 0; }
 function onToken(resp) {
   const p = pendingAuth; pendingAuth = null;
   if (!p) return;
   if (resp.error) return p.reject(new Error(resp.error_description || resp.error));
-  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) return p.reject(new Error('Tick the Google Drive permission so InvoiceVault can save your files.'));
+  if (!google.accounts.oauth2.hasGrantedAllScopes(resp, SCOPE)) return p.reject(new Error(`Tick the Google Drive permission so ${APP_NAME} can save your files.`));
   setToken(resp.access_token, Number(resp.expires_in) || 3600);
   p.resolve();
 }
@@ -578,17 +784,32 @@ function onTokenError(err) {
 }
 function setToken(token, expiresIn) {
   state.token = token; state.tokenExp = Date.now() + (expiresIn - 60) * 1000;
-  try { sessionStorage.setItem('iv.token', JSON.stringify({ token, exp: state.tokenExp })); } catch {}
+  // localStorage so reopening the app within the hour needs no sign-in. The token only reaches
+  // files this app created, expires in 1 hour, and the app lock guards the screen.
+  try { localStorage.setItem('iv.token', JSON.stringify({ token, exp: state.tokenExp })); } catch {}
 }
 function clearToken() {
   state.token = null; state.tokenExp = 0;
-  try { sessionStorage.removeItem('iv.token'); } catch {}
+  try { localStorage.removeItem('iv.token'); sessionStorage.removeItem('iv.token'); } catch {}
+}
+function getHint() { try { return localStorage.getItem('iv.hint') || ''; } catch { return ''; } }
+function setHint(v) { try { v ? localStorage.setItem('iv.hint', v) : localStorage.removeItem('iv.hint'); } catch {} }
+async function rememberAccount() {
+  try {
+    const r = await api(`${DRIVE}/about?fields=user(emailAddress)`);
+    if (r?.user?.emailAddress) setHint(r.user.emailAddress);
+  } catch {}
+}
+function renderSignin() {
+  const hint = getHint();
+  $('#signinLabel').textContent = hint ? `Continue as ${hint}` : 'Continue with Google';
+  $('#switchAcct').hidden = !hint;
 }
 function reauth() {
   if (reauthPromise) return reauthPromise;
   reauthPromise = new Promise((resolve, reject) => {
     const box = $('#reauth'); box.hidden = false;
-    $('#reauthGo').onclick = () => requestToken(true).then(() => { box.hidden = true; resolve(); }).catch((e) => toast(e.message, true));
+    $('#reauthGo').onclick = () => (AUTH_SERVER ? requestSession() : requestToken(true)).then(() => { box.hidden = true; resolve(); }).catch((e) => toast(e.message, true));
     $('#reauthCancel').onclick = () => { box.hidden = true; reject(new Error('Signed out.')); signOut(); };
   }).finally(() => { reauthPromise = null; });
   return reauthPromise;
@@ -596,14 +817,14 @@ function reauth() {
 
 /* ---------- API wrapper ---------- */
 async function api(url, opts = {}, retry = true) {
-  if (!state.token || Date.now() > state.tokenExp) await reauth();
+  if (!state.token || Date.now() > state.tokenExp) await ensureToken();
   const headers = { Authorization: `Bearer ${state.token}`, ...(opts.headers || {}) };
   let body = opts.body;
   if (opts.json !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.json); }
   let res;
   try { res = await fetch(url, { method: opts.method || 'GET', headers, body }); }
   catch { throw new Error('No internet connection. Check your network and try again.'); }
-  if (res.status === 401 && retry) { clearToken(); await reauth(); return api(url, opts, false); }
+  if (res.status === 401 && retry) { clearToken(); await ensureToken(); return api(url, opts, false); }
   if (!res.ok) {
     let msg = `Google returned ${res.status}.`;
     try { const j = await res.json(); if (j.error?.message) msg = j.error.message; } catch {}
@@ -703,8 +924,8 @@ async function bioAvailable() {
 async function bioRegister() {
   const cred = await navigator.credentials.create({ publicKey: {
     challenge: rand(32),
-    rp: { name: 'InvoiceVault', id: location.hostname },
-    user: { id: rand(16), name: 'invoicevault-lock', displayName: 'InvoiceVault app lock' },
+    rp: { name: 'Kagaz', id: location.hostname },
+    user: { id: rand(16), name: 'invoicevault-lock', displayName: 'Kagaz app lock' },
     pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
     authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' },
     timeout: 60000, attestation: 'none',
@@ -777,7 +998,7 @@ function openLockSettings() {
   if (off) off.onclick = () => { setLock(null); closeSheet(); toast('App lock is off'); };
 }
 function setupPin() {
-  openDialog(`<h3>Choose a PIN</h3><p>4 to 8 digits. You'll enter it when you open InvoiceVault.</p>
+  openDialog(`<h3>Choose a PIN</h3><p>4 to 8 digits. You'll enter it when you open Kagaz.</p>
     <form id="pf"><input class="inp" id="p1" type="password" inputmode="numeric" maxlength="8" placeholder="New PIN" autocomplete="off" />
     <input class="inp" id="p2" type="password" inputmode="numeric" maxlength="8" placeholder="Type it again" autocomplete="off" />
     <div class="two"><button type="button" class="btn" id="pc">Cancel</button><button class="btn primary">Turn on</button></div></form>`);
@@ -795,16 +1016,32 @@ function setupPin() {
 }
 
 /* ---------- Storage layer: Drive folder + Google Sheet ---------- */
-async function ensureFolder() {
-  const q = `name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+async function findFolder(name) {
+  const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
   const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
-  if (r.files?.length) return r.files[0].id;
+  return r.files?.[0]?.id || null;
+}
+const renameFile = (id, name) => api(`${DRIVE}/files/${id}?fields=id`, { method: 'PATCH', json: { name } });
+async function ensureFolder() {
+  let id = await findFolder(FOLDER_NAME);
+  if (id) return id;
+  for (const old of LEGACY_FOLDERS) {
+    id = await findFolder(old);
+    if (id) { await renameFile(id, FOLDER_NAME); return id; }
+  }
   return (await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' } })).id;
 }
 async function ensureSheet(folderId) {
-  const q = `name='${SHEET_FILE_NAME}' and mimeType='application/vnd.google-apps.spreadsheet' and '${folderId}' in parents and trashed=false`;
-  const r = await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`);
-  let id = r.files?.[0]?.id, created = false;
+  const findSheet = async (name) => {
+    const q = `name='${name}' and mimeType='application/vnd.google-apps.spreadsheet' and '${folderId}' in parents and trashed=false`;
+    return (await api(`${DRIVE}/files?${qs({ q, fields: 'files(id)', spaces: 'drive', pageSize: 5 })}`)).files?.[0]?.id || null;
+  };
+  let id = await findSheet(SHEET_FILE_NAME), created = false;
+  for (const old of LEGACY_SHEETS) {
+    if (id) break;
+    id = await findSheet(old);
+    if (id) await renameFile(id, SHEET_FILE_NAME);
+  }
   if (!id) {
     id = (await api(`${DRIVE}/files?fields=id`, { method: 'POST', json: { name: SHEET_FILE_NAME, mimeType: 'application/vnd.google-apps.spreadsheet', parents: [folderId] } })).id;
     created = true;
@@ -929,18 +1166,19 @@ async function deleteObj(kind, o) {
   await Promise.allSettled(o.files.map((f) => trashFile(f.id)));
   await loadKind(kind);
 }
-async function fileURL(f) {
-  if (blobCache.has(f.id)) return blobCache.get(f.id);
+async function fileBlob(f) {
+  if (blobCache.has(f.id)) return blobCache.get(f.id).blob;
   let data = await api(`${DRIVE}/files/${f.id}?alt=media`, { as: 'buffer' });
   if (f.enc) {
     if (!vault.key) throw new Error('Unlock your vault first.');
     data = await decBytes(vault.key, data);
   }
-  const url = URL.createObjectURL(new Blob([data], { type: f.mime || 'application/octet-stream' }));
-  blobCache.set(f.id, url);
-  return url;
+  const blob = new Blob([data], { type: f.mime || 'application/octet-stream' });
+  blobCache.set(f.id, { blob, url: URL.createObjectURL(blob) });
+  return blob;
 }
-function clearBlobs() { blobCache.forEach((u) => URL.revokeObjectURL(u)); blobCache.clear(); }
+async function fileURL(f) { await fileBlob(f); return blobCache.get(f.id).url; }
+function clearBlobs() { blobCache.forEach((c) => URL.revokeObjectURL(c.url)); blobCache.clear(); }
 
 /* ---------- UI primitives ---------- */
 function show(id) { for (const s of ['setup', 'signin', 'app']) $('#' + s).hidden = s !== id; }
@@ -1049,7 +1287,7 @@ function renderTabs() {
 }
 function renderSummary() {
   const el = $('#summary');
-  if (!state.loaded) { el.innerHTML = '<h2>Loading your vault</h2><p>Opening your InvoiceVault folder in Google Drive</p>'; return; }
+  if (!state.loaded) { el.innerHTML = '<h2>Loading your vault</h2><p>Opening your Kagaz folder in Google Drive</p>'; return; }
   if (state.view === 'bills') {
     const items = state.bills, ws = items.map(billStatus);
     if (!items.length) { el.innerHTML = '<h2>No bills yet</h2><p>Add your first invoice or warranty slip to get started.</p>'; return; }
@@ -1173,11 +1411,13 @@ function openBillDetail(it) {
     <dl class="dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
     <p class="section-title">Documents</p>${filesBlock(it.files)}
     <div class="actions">
+      <button class="btn" id="shareBtn">${icon.share} Share</button>
       ${canRemind ? `<a class="btn" href="${esc(calendarLink(`Warranty ending: ${it.product}`, w.expiry, 14, details))}" target="_blank" rel="noopener">${icon.bell} Add calendar reminder</a>` : ''}
       <div class="two"><button class="btn danger" id="delBtn">Delete</button><button class="btn primary" id="editBtn">Edit</button></div>
     </div>`);
   mountFiles(it.files);
   $('#editBtn').onclick = () => openBillForm(it);
+  $('#shareBtn').onclick = () => openShare('bills', it);
   $('#delBtn').onclick = (e) => confirmDelete(e.target, 'bills', it, it.product);
 }
 async function confirmDelete(btn, kind, o, name) {
@@ -1190,13 +1430,12 @@ function openBillForm(existing) {
   const it = existing || { product: '', brand: '', category: '', store: '', purchaseDate: toISO(today()), price: null, warrantyMonths: 12, serial: '', notes: '', files: [] };
   const inYears = it.warrantyMonths > 0 && it.warrantyMonths % 12 === 0;
   const pending = [], removeIds = new Set();
-  const cats = ['', ...CATEGORIES, ...(it.category && !CATEGORIES.includes(it.category) ? [it.category] : [])];
   openSheet(`${head(existing ? 'Edit bill' : 'Add bill')}
     <form class="form" id="billForm" novalidate>
       <label class="field"><span>Product name</span><input name="product" required maxlength="120" value="${esc(it.product)}" placeholder="e.g. Samsung 43 inch TV" autocomplete="off" /></label>
       <div class="row2">
         <label class="field"><span>Brand</span><input name="brand" maxlength="60" value="${esc(it.brand)}" autocomplete="off" /></label>
-        <label class="field"><span>Category</span><select name="category">${cats.map((c) => `<option value="${esc(c)}" ${c === it.category ? 'selected' : ''}>${c ? esc(c) : 'Choose'}</option>`).join('')}</select></label>
+        <label class="field"><span>Category</span><select name="category">${categoryOptions(it.category)}</select></label>
       </div>
       <label class="field"><span>Store or seller</span><input name="store" maxlength="80" value="${esc(it.store)}" placeholder="e.g. Croma, Amazon" autocomplete="off" /></label>
       <div class="row2">
@@ -1221,6 +1460,7 @@ function openBillForm(existing) {
   };
   ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (['wNum', 'wUnit', 'purchaseDate'].includes(e.target.name)) updateHint(); }));
   updateHint();
+  wireAddNew(form.category, askNewCategory, categoryOptions);
   wireFilePicker(pending, removeIds);
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -1229,7 +1469,7 @@ function openBillForm(existing) {
     if (!form.purchaseDate.value) { toast('Enter the purchase date.', true); return form.purchaseDate.focus(); }
     const priceRaw = form.price.value.trim();
     const data = {
-      product, brand: form.brand.value.trim(), category: form.category.value, store: form.store.value.trim(),
+      product, brand: form.brand.value.trim(), category: form.category.value === NEW ? '' : form.category.value, store: form.store.value.trim(),
       purchaseDate: form.purchaseDate.value, price: priceRaw === '' ? null : Math.max(0, Number(priceRaw)),
       warrantyMonths: Math.max(0, Math.round(Number(form.wNum.value || 0) * Number(form.wUnit.value))),
       serial: form.serial.value.trim(), notes: form.notes.value.trim(),
@@ -1264,6 +1504,7 @@ async function openDocDetail(d) {
     ${rows.length ? `<dl class="dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>` : ''}
     <p class="section-title">Files</p>${filesBlock(d.files)}
     <div class="actions">
+      <button class="btn" id="shareBtn">${icon.share} Share</button>
       ${canRemind ? `<a class="btn" href="${esc(calendarLink(`Renew: ${title}${d.holder ? ` (${d.holder})` : ''}`, w.expiry, w.soonDays, `${title} expires on ${fmtDate(w.expiry)}. Start the renewal now.`))}" target="_blank" rel="noopener">${icon.bell} Add renewal reminder</a>` : ''}
       <div class="two"><button class="btn danger" id="delBtn">Delete</button><button class="btn primary" id="editBtn">Edit</button></div>
     </div>`);
@@ -1275,6 +1516,7 @@ async function openDocDetail(d) {
   const cb = $('#copyNum');
   if (cb) cb.onclick = () => navigator.clipboard.writeText(number).then(() => toast('Number copied'), () => toast('Couldn\'t copy. Tap Show and copy it manually.', true));
   $('#editBtn').onclick = () => openDocForm(d);
+  $('#shareBtn').onclick = () => openShare('docs', d);
   $('#delBtn').onclick = (e) => confirmDelete(e.target, 'docs', d, title);
 }
 async function openDocForm(existing) {
@@ -1286,10 +1528,9 @@ async function openDocForm(existing) {
   const d = existing || { docType: '', title: '', holder: 'Me', issueDate: '', expiryDate: '', notes: '', files: [], encrypted: false };
   const pending = [], removeIds = new Set();
   const holders = [...new Set(['Me', ...state.docs.map((x) => x.holder).filter(Boolean)])];
-  const typeOptions = GROUPS.map((g) => `<optgroup label="${g}">${DOC_TYPES.filter((t) => t.g === g).map((t) => `<option value="${esc(t.t)}" ${t.t === d.docType ? 'selected' : ''}>${esc(t.t)}</option>`).join('')}</optgroup>`).join('');
   openSheet(`${head(existing ? 'Edit document' : 'Add document')}
     <form class="form" id="docForm" novalidate>
-      <label class="field"><span>Document type</span><select name="docType" required><option value="">Choose</option>${typeOptions}</select></label>
+      <label class="field"><span>Document type</span><select name="docType" required>${docTypeOptions(d.docType)}</select></label>
       <div class="row2">
         <label class="field"><span>Name it (optional)</span><input name="title" maxlength="80" value="${esc(d.title && d.title !== d.docType ? d.title : '')}" placeholder="e.g. Car insurance" autocomplete="off" /></label>
         <label class="field"><span>Belongs to</span><input name="holder" maxlength="40" value="${esc(d.holder)}" list="holderList" autocomplete="off" /><datalist id="holderList">${holders.map((h) => `<option value="${esc(h)}"></option>`).join('')}</datalist></label>
@@ -1319,12 +1560,16 @@ async function openDocForm(existing) {
       ? `${w.status === 'expired' ? 'Already expired' : `Valid for ${timeLeft(w.days).replace(' left', '')}`}. You'll be reminded ${w.soonDays} days before.`
       : info?.exp ? 'Add the expiry date to get a renewal reminder.' : '';
   };
-  form.addEventListener('change', (e) => { if (e.target.id === 'encBox') encTouched = true; updateHint(); });
+  form.addEventListener('change', (e) => {
+    if (e.target.id === 'encBox') encTouched = true;
+    if (e.target.value !== NEW) updateHint();
+  });
   updateHint();
+  wireAddNew(form.docType, askNewDocType, docTypeOptions, updateHint);
   wireFilePicker(pending, removeIds);
   form.onsubmit = async (e) => {
     e.preventDefault();
-    const docType = form.docType.value;
+    const docType = form.docType.value === NEW ? '' : form.docType.value;
     if (!docType) { toast('Choose the document type.', true); return form.docType.focus(); }
     if (form.issueDate.value && form.expiryDate.value && form.expiryDate.value < form.issueDate.value) return toast('Expiry date is before the issue date.', true);
     const encrypt = existing ? !!existing.encrypted : !!$('#encBox')?.checked;
@@ -1339,24 +1584,157 @@ async function openDocForm(existing) {
   };
 }
 
+/* ---------- Share ---------- */
+function shareName(f) {
+  const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'application/pdf': '.pdf' }[f.mime] || '';
+  const n = String(f.name || 'file').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+  return ext && !n.toLowerCase().endsWith(ext) && !(ext === '.jpg' && /\.jpe?g$/i.test(n)) ? n + ext : n;
+}
+// Fields you can pick when sharing. [key, label, on by default]
+const SHARE_FIELDS = {
+  bills: [['brand', 'Brand', true], ['category', 'Category', false], ['store', 'Store', true], ['purchaseDate', 'Purchase date', true],
+    ['price', 'Price', false], ['warranty', 'Warranty period', true], ['validity', 'Warranty valid until', true],
+    ['serial', 'Serial / IMEI', false], ['notes', 'Notes', false]],
+  docs: [['docType', 'Document type', true], ['holder', 'Belongs to', true], ['number', 'Document number', false],
+    ['issueDate', 'Issue date', true], ['expiryDate', 'Valid until', true], ['notes', 'Notes', false]],
+};
+function getSharePrefs(kind) { try { return JSON.parse(localStorage.getItem('iv.share.' + kind) || '{}'); } catch { return {}; } }
+function setSharePrefs(kind, v) { try { localStorage.setItem('iv.share.' + kind, JSON.stringify(v)); } catch {} }
+// Returns the display value, '' when empty, or null when it's encrypted and locked.
+async function shareValue(kind, o, key) {
+  if (kind === 'bills') {
+    const w = billStatus(o);
+    switch (key) {
+      case 'purchaseDate': return fmtDate(parseDate(o.purchaseDate));
+      case 'price': return o.price != null ? inr.format(o.price) : '';
+      case 'warranty': return o.warrantyMonths ? durationLabel(o.warrantyMonths) : '';
+      case 'validity': return w.expiry ? `${fmtDate(w.expiry)}${w.status === 'expired' ? ' (expired)' : ''}` : '';
+      default: return o[key] || '';
+    }
+  }
+  const w = docStatus(o);
+  switch (key) {
+    case 'docType': return o.title && o.title !== o.docType ? o.docType : '';
+    case 'number':
+      if (!o.number) return '';
+      if (!o.encrypted) return o.number;
+      if (!vault.key) return null;
+      try { return await decText(vault.key, o.number); } catch { return ''; }
+    case 'issueDate': return fmtDate(parseDate(o.issueDate));
+    case 'expiryDate': return w.expiry ? `${fmtDate(w.expiry)}${w.status === 'expired' ? ' (expired)' : ''}` : '';
+    default: return o[key] || '';
+  }
+}
+async function openShare(kind, o) {
+  const title = kind === 'bills' ? o.product : (o.title || o.docType);
+  const prefs = getSharePrefs(kind);
+  const fields = [];
+  for (const [key, label, def] of SHARE_FIELDS[kind]) {
+    const value = await shareValue(kind, o, key);
+    if (value === '') continue; // nothing to share for this field
+    fields.push({ key, label, value, on: value !== null && (prefs[key] ?? def) });
+  }
+  const files = o.files.map((f) => ({ f, on: true, file: null, locked: f.enc && !vault.key }));
+  const anyLocked = fields.some((x) => x.value === null) || files.some((x) => x.locked);
+
+  openSheet(`${head(`Share ${esc(title)}`)}
+    <p class="sheet-sub">Pick what to send. ${o.encrypted ? 'Shared copies are not encrypted.' : ''}</p>
+    ${anyLocked ? `<button class="btn" id="shUnlock" style="width:100%;margin-bottom:16px">${icon.lock} Unlock to include encrypted details</button>` : ''}
+    ${fields.length ? `<div class="pick-head"><p class="section-title">Details</p><button class="mini" id="shAll">Select all</button></div>
+    <ul class="pick" id="shFields">${fields.map((x, i) => `<li><label>
+      <input type="checkbox" data-f="${i}" ${x.on ? 'checked' : ''} ${x.value === null ? 'disabled' : ''} />
+      <span class="k">${esc(x.label)}</span><span class="v">${x.value === null ? 'Locked' : esc(x.key === 'number' ? maskNumber(x.value) : x.value)}</span></label></li>`).join('')}</ul>` : ''}
+    ${files.length ? `<p class="section-title">Files</p>
+    <ul class="pick" id="shFiles">${files.map((x, i) => `<li><label>
+      <input type="checkbox" data-i="${i}" ${x.locked ? 'disabled' : 'checked'} />
+      <span class="k">${esc(x.f.name)}</span><span class="v" id="shSt${i}">${x.locked ? 'Locked' : 'Preparing'}</span></label></li>`).join('')}</ul>` : ''}
+    <p class="section-title">Message preview</p>
+    <div class="msg-preview" id="shPreview"></div>
+    <div class="actions">
+      <button class="btn primary" id="shGo">${icon.share} Share</button>
+      <button class="btn" id="shCopy">Copy text only</button>
+    </div>`);
+
+  const buildText = () => [title, ...fields.filter((x) => x.on && x.value).map((x) => `${x.label}: ${x.value}`)].join('\n');
+  const chosenFiles = () => files.filter((x) => x.on && !x.locked);
+  const refresh = () => {
+    $('#shPreview').textContent = buildText();
+    const chosen = chosenFiles();
+    const waiting = chosen.some((x) => !x.file);
+    const btn = $('#shGo');
+    btn.disabled = waiting;
+    btn.innerHTML = waiting ? `${icon.share} Preparing files`
+      : `${icon.share} Share${chosen.length ? ` with ${chosen.length} file${chosen.length === 1 ? '' : 's'}` : ' details'}`;
+    const all = $('#shAll');
+    if (all) all.textContent = fields.every((x) => x.on || x.value === null) ? 'Select none' : 'Select all';
+  };
+  const savePrefs = () => { const p = getSharePrefs(kind); fields.forEach((x) => { if (x.value !== null) p[x.key] = x.on; }); setSharePrefs(kind, p); };
+
+  $('#sheet').querySelectorAll('[data-f]').forEach((cb) => { cb.onchange = () => { fields[Number(cb.dataset.f)].on = cb.checked; savePrefs(); refresh(); }; });
+  $('#sheet').querySelectorAll('[data-i]').forEach((cb) => { cb.onchange = () => { files[Number(cb.dataset.i)].on = cb.checked; refresh(); }; });
+  const all = $('#shAll');
+  if (all) all.onclick = () => {
+    const turnOn = !fields.every((x) => x.on || x.value === null);
+    fields.forEach((x, i) => { if (x.value === null) return; x.on = turnOn; $(`[data-f="${i}"]`).checked = turnOn; });
+    savePrefs(); refresh();
+  };
+  const unlock = $('#shUnlock');
+  if (unlock) unlock.onclick = () => ensureVaultKey().then(() => openShare(kind, o)).catch((e) => toast(e.message, true));
+
+  // Download files now: phones only allow sharing straight after a tap, so they must be ready first.
+  files.forEach((x, i) => {
+    if (x.locked) return;
+    fileBlob(x.f).then((blob) => {
+      x.file = new File([blob], shareName(x.f), { type: x.f.mime || blob.type });
+      const st = $(`#shSt${i}`); if (st) st.textContent = blob.size < 1e5 ? `${Math.max(1, Math.round(blob.size / 1e3))} KB` : `${(blob.size / 1e6).toFixed(1)} MB`;
+      if (document.contains($('#shGo'))) refresh();
+    }).catch(() => {
+      x.locked = true; x.on = false;
+      const st = $(`#shSt${i}`); if (st) st.textContent = 'Couldn\'t load';
+      const cb = $(`[data-i="${i}"]`); if (cb) { cb.checked = false; cb.disabled = true; }
+      if (document.contains($('#shGo'))) refresh();
+    });
+  });
+  refresh();
+
+  $('#shGo').onclick = async () => {
+    const text = buildText();
+    const shareFiles = chosenFiles().map((x) => x.file);
+    const canFiles = shareFiles.length && navigator.canShare && navigator.canShare({ files: shareFiles });
+    if (navigator.share && (!shareFiles.length || canFiles)) {
+      try { await navigator.share(shareFiles.length ? { title, text, files: shareFiles } : { title, text }); }
+      catch (err) { if (err.name !== 'AbortError') toast('Sharing didn\'t work. Try again.', true); }
+      return;
+    }
+    // Fallback (mostly desktop browsers): copy the text, download the files.
+    navigator.clipboard?.writeText(text).catch(() => {});
+    chosenFiles().forEach((x) => downloadURL(blobCache.get(x.f.id).url, x.file.name));
+    toast(shareFiles.length ? 'Text copied and files downloaded' : 'Text copied. Paste it anywhere.');
+  };
+  $('#shCopy').onclick = () => navigator.clipboard.writeText(buildText()).then(() => toast('Text copied. Paste it anywhere.'), () => toast('Couldn\'t copy the text.', true));
+}
+
 /* ---------- Menu ---------- */
 function openMenu() {
   const lock = getLock();
   const vaultState = !vaultExists() ? 'Not set up' : vault.key ? 'Unlocked' : 'Locked';
-  openSheet(`${head('InvoiceVault')}
+  openSheet(`${head('Kagaz')}
     <div class="menu">
       <div class="label">Security</div>
       <button id="mLock">${icon.finger} App lock<span class="state">${lock ? 'On' : 'Off'}</span></button>
       <button id="mVault">${icon.key} Vault password<span class="state">${vaultState}</span></button>
       ${lock ? `<button id="mLockNow">${icon.lock} Lock now</button>` : ''}
+      <div class="label">Lists</div>
+      <button id="mLists">${icon.tag} Categories and document types</button>
       <div class="label">Your data</div>
       <a href="https://docs.google.com/spreadsheets/d/${esc(state.spreadsheetId)}" target="_blank" rel="noopener">${icon.sheet} Open data sheet</a>
       <a href="https://drive.google.com/drive/folders/${esc(state.folderId)}" target="_blank" rel="noopener">${icon.folder} Open Drive folder</a>
       <button id="mRefresh">${icon.refresh} Refresh</button>
       ${installPrompt ? `<button id="mInstall">${icon.install} Install app on this phone</button>` : ''}
-      <button id="mOut">${icon.out} Sign out</button>
+      <button id="mOut">${icon.out} Sign out${AUTH_SERVER && getSession() ? `<span class="state">${sessionDaysLeft()} days left</span>` : ''}</button>
     </div>`);
   $('#mLock').onclick = openLockSettings;
+  $('#mLists').onclick = openListsManager;
   $('#mVault').onclick = () => {
     if (!vaultExists()) { closeSheet(); askVaultSetup().catch((e) => toast(e.message, true)); }
     else if (vault.key) { lockVault(); closeSheet(); renderAll(); toast('Encrypted documents locked'); }
@@ -1369,7 +1747,7 @@ function openMenu() {
     try { await loadAll(); } catch (e) { toast(e.message, true); state.loaded = true; }
     renderAll();
   };
-  $('#mOut').onclick = () => { closeSheet(); signOut(); };
+  $('#mOut').onclick = () => { closeSheet(); setHint(''); signOut(); };
   const ins = $('#mInstall');
   if (ins) ins.onclick = () => { closeSheet(); installPrompt.prompt(); installPrompt = null; };
 }
@@ -1382,6 +1760,7 @@ async function startApp() {
     const s = await ensureSheet(state.folderId);
     state.spreadsheetId = s.id; state.tabIds = s.tabIds;
     await loadAll();
+    rememberAccount();
   } catch (err) {
     if (!state.token) return;
     toast(err.message, true); state.loaded = true;
@@ -1389,9 +1768,12 @@ async function startApp() {
   renderAll();
 }
 function signOut() {
+  const sess = getSession();
+  if (sess && AUTH_SERVER) authCall('/revoke', { rt: sess.rt }).catch(() => {});
+  clearSession();
   clearToken(); lockVault(); closeSheet(); closeDialog(); closeViewer();
   Object.assign(state, { folderId: null, spreadsheetId: null, tabIds: {}, bills: [], docs: [], settings: {}, loaded: false });
-  show('signin');
+  renderSignin(); show('signin');
 }
 function measureTop() { const h = $('#topbar').offsetHeight; if (h) document.documentElement.style.setProperty('--top-h', h + 'px'); }
 
@@ -1400,17 +1782,22 @@ async function boot() {
   const gis = initGis().catch((e) => e);
   if (getLock()) await showLock();
   const g = await gis;
-  if (g instanceof Error) { show('signin'); toast(g.message, true); return; }
+  if (g instanceof Error) { renderSignin(); show('signin'); toast(g.message, true); return; }
   let saved = null;
-  try { saved = JSON.parse(sessionStorage.getItem('iv.token') || 'null'); } catch {}
-  if (saved && saved.exp > Date.now() + 60000) { state.token = saved.token; state.tokenExp = saved.exp; startApp(); }
-  else show('signin');
+  try { saved = JSON.parse(localStorage.getItem('iv.token') || 'null'); } catch {}
+  if (saved && saved.exp > Date.now() + 60000) { state.token = saved.token; state.tokenExp = saved.exp; startApp(); return; }
+  if (AUTH_SERVER && getSession()) {
+    try { await refreshAccess(); startApp(); return; }
+    catch (err) { if (err.network) toast(err.message, true); }
+  }
+  renderSignin(); show('signin');
 }
 
 /* ---------- Events ---------- */
+$('#switchAcct').onclick = () => { setHint(''); renderSignin(); $('#signinBtn').click(); };
 $('#signinBtn').onclick = () => {
   if (!tokenClient) return toast('Google sign-in is still loading. Try again in a moment.', true);
-  requestToken(false).then(startApp).catch((e) => toast(e.message, true));
+  signIn().then(startApp).catch((e) => toast(e.message, true));
 };
 $('#addBtn').onclick = () => (state.view === 'bills' ? openBillForm(null) : openDocForm(null));
 $('#menuBtn').onclick = openMenu;
