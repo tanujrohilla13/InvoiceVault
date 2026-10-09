@@ -317,6 +317,10 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 .pick .k { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pick .v { margin-left: auto; color: var(--muted); font-size: 14px; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; flex-shrink: 0; }
 .msg-preview { white-space: pre-wrap; word-break: break-word; background: var(--surface-2); border-radius: 12px; padding: 12px 14px; margin: 8px 0 18px; font-size: 15px; }
+
+/* Auto-fill */
+.autofill { margin: 0; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); font-size: 14px; }
+.field .filled { border-color: var(--accent); background: var(--accent-soft); }
 .files li .name small{white-space:normal}</style>
 </head>
 <body>
@@ -1256,7 +1260,7 @@ function filePickerBlock(existingFiles, label, hint) {
     <label class="picker"><input type="file" id="fileInput" multiple accept="image/*,application/pdf" hidden />${icon.camera}<span><b>Add photos or PDFs</b><small>${hint}</small></span></label>
     <ul class="files" id="newFiles"></ul></div>`;
 }
-function wireFilePicker(pending, removeIds) {
+function wireFilePicker(pending, removeIds, onAdded) {
   const renderNew = () => {
     $('#newFiles').innerHTML = pending.map((f, i) => `<li><span class="name">${esc(f.name)}</span><span class="hint num">${(f.size / 1e6).toFixed(1)} MB</span><button type="button" data-i="${i}">Remove</button></li>`).join('');
   };
@@ -1265,8 +1269,11 @@ function wireFilePicker(pending, removeIds) {
       if (f.size > 25e6) { toast(`${f.name} is over 25 MB. Choose a smaller file.`, true); continue; }
       pending.push(f);
     }
+    const added = [...e.target.files].filter((f) => f.size <= 25e6);
     e.target.value = ''; renderNew();
+    if (onAdded && added.length) onAdded(added);
   };
+  if (pending.length) renderNew();
   $('#newFiles').onclick = (e) => { const b = e.target.closest('button[data-i]'); if (b) { pending.splice(Number(b.dataset.i), 1); renderNew(); } };
   const old = $('#oldFiles');
   if (old) old.onclick = (e) => {
@@ -1399,6 +1406,238 @@ function docRow(d, w) {
     ${lifeBar(w)}</button>`;
 }
 
+
+/* ---------- Auto-fill from PDFs (reads the text inside invoices and documents) ---------- */
+const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+let pdfjsPromise = null;
+function loadPdfJs() {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if (!pdfjsPromise) {
+    pdfjsPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = PDFJS + 'pdf.min.js';
+      s.onload = () => { window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; resolve(window.pdfjsLib); };
+      s.onerror = () => { pdfjsPromise = null; reject(new Error('Couldn\'t load the PDF reader.')); };
+      document.head.appendChild(s);
+    });
+  }
+  return pdfjsPromise;
+}
+const isPdf = (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+async function pdfText(file) {
+  const lib = await loadPdfJs();
+  const doc = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  let out = '';
+  for (let i = 1; i <= Math.min(doc.numPages, 3); i++) {
+    const tc = await (await doc.getPage(i)).getTextContent();
+    out += tc.items.map((it) => it.str + (it.hasEOL ? '\n' : ' ')).join('') + '\n';
+  }
+  doc.destroy();
+  return out.replace(/\u00a0/g, ' ');
+}
+
+const MONTHS = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+function findDates(s) {
+  const out = [];
+  const re = /\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4}|\d{2})\b|\b(\d{4})-(\d{2})-(\d{2})\b|\b(\d{1,2})(?:st|nd|rd|th)?[\s-]+([A-Za-z]{3,9})[,\s-]+(\d{4})\b|\b([A-Za-z]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})\b/g;
+  let m;
+  while ((m = re.exec(s))) {
+    let y, mo, d;
+    if (m[1]) { d = +m[1]; mo = +m[2] - 1; y = +m[3]; if (y < 100) y += 2000; }
+    else if (m[4]) { y = +m[4]; mo = +m[5] - 1; d = +m[6]; }
+    else if (m[7]) { d = +m[7]; mo = MONTHS[m[8].slice(0, 3).toLowerCase()]; y = +m[9]; }
+    else { mo = MONTHS[m[10].slice(0, 3).toLowerCase()]; d = +m[11]; y = +m[12]; }
+    if (mo == null || mo < 0 || mo > 11 || d < 1 || d > 31 || y < 1980 || y > 2100) continue;
+    const dt = new Date(y, mo, d);
+    if (dt.getMonth() !== mo) continue;
+    out.push({ iso: toISO(dt), date: dt, index: m.index });
+  }
+  return out;
+}
+function dateAfter(text, labels, span = 70) {
+  for (const re of labels) {
+    const m = re.exec(text);
+    if (!m) continue;
+    const found = findDates(text.slice(m.index + m[0].length, m.index + m[0].length + span))[0];
+    if (found) return found.iso;
+  }
+  return '';
+}
+// Money: needs a currency sign, decimals or Indian/western comma grouping, so IDs aren't mistaken for prices.
+function amountsIn(seg) {
+  const out = [];
+  const re = /(₹|Rs\.?|INR)?\s*(\d{1,3}(?:,\d{2,3})+(?:\.\d{1,2})?|\d+\.\d{1,2}|\d+)/gi;
+  let m;
+  while ((m = re.exec(seg))) {
+    const raw = m[2];
+    if (!m[1] && !/[.,]/.test(raw)) continue;
+    const v = parseFloat(raw.replace(/,/g, ''));
+    if (v > 0 && v < 1e8) out.push(v);
+  }
+  return out;
+}
+const MERCHANTS = [
+  ['Amazon', ['amazon']], ['Flipkart', ['flipkart']], ['Myntra', ['myntra']], ['Meesho', ['meesho']], ['Ajio', ['ajio']],
+  ['Nykaa', ['nykaa']], ['Croma', ['croma', 'infiniti retail']], ['Reliance Digital', ['reliance digital', 'reliance retail']],
+  ['Vijay Sales', ['vijay sales']], ['Tata CLiQ', ['tata cliq', 'tatacliq']], ['JioMart', ['jiomart']], ['BigBasket', ['bigbasket']],
+  ['Blinkit', ['blinkit']], ['Zepto', ['zepto']], ['Decathlon', ['decathlon']], ['IKEA', ['ikea']], ['Lenskart', ['lenskart']],
+  ['Pepperfry', ['pepperfry']], ['Apple', ['apple india', 'apple store']], ['Samsung', ['samsung india']], ['boAt', ['imagine marketing']],
+];
+const CAT_HINTS = [
+  ['Mobile & gadgets', /\b(phone|smartphone|iphone|galaxy|redmi|oneplus|earbuds|earphones?|headphones?|smart ?watch|tablet|ipad|power ?bank|charger)\b/i],
+  ['Electronics', /\b(tv|television|laptop|macbook|monitor|camera|speaker|soundbar|printer|router|playstation|xbox)\b/i],
+  ['Home appliances', /\b(refrigerator|fridge|washing machine|air conditioner|microwave|purifier|geyser|water heater|vacuum|cooler|ceiling fan|iron)\b/i],
+  ['Kitchen', /\b(mixer|grinder|pressure cooker|kettle|toaster|induction|chimney|cookware|blender)\b/i],
+  ['Furniture', /\b(sofa|bed|table|chair|wardrobe|mattress|bookshelf)\b/i],
+  ['Clothing & footwear', /\b(shirt|t-shirt|jeans|shoes?|sneakers|kurta|dress|saree|jacket)\b/i],
+];
+function parseBill(text) {
+  const r = {};
+  const lower = text.toLowerCase();
+  let best = null;
+  for (const [name, keys] of MERCHANTS) for (const k of keys) { const i = lower.indexOf(k); if (i >= 0 && (!best || i < best.i)) best = { name, i }; }
+  if (best) r.store = best.name;
+  r.purchaseDate = dateAfter(text, [/invoice\s*date/i, /order\s*date/i, /bill\s*date/i, /date\s*of\s*(?:invoice|purchase)/i, /\bdated?\b/i]);
+  if (!r.purchaseDate) { const past = findDates(text).find((d) => d.date <= today()); if (past) r.purchaseDate = past.iso; }
+  for (const re of [/grand\s*total/gi, /total\s*amount(?:\s*(?:payable|paid))?/gi, /amount\s*(?:payable|paid)/gi, /invoice\s*(?:value|total|amount)/gi, /net\s*(?:amount|payable)/gi, /\btotal\b/gi]) {
+    let m, max = 0;
+    while ((m = re.exec(text))) {
+      const seg = text.slice(m.index + m[0].length, m.index + m[0].length + 90).split('\n')[0];
+      for (const a of amountsIn(seg)) if (a > max) max = a;
+    }
+    if (max > 0) { r.price = String(Math.round(max * 100) / 100); break; }
+  }
+  const order = text.match(/order\s*(?:no\.?|number|id|#)\s*[:#.\-]?\s*([A-Z0-9][A-Z0-9\-]{5,})/i);
+  const inv = text.match(/invoice\s*(?:no\.?|number|#)\s*[:#.\-]?\s*([A-Z0-9][A-Z0-9\/\-]{3,})/i);
+  r.notes = [order && `Order no: ${order[1]}`, inv && `Invoice no: ${inv[1]}`].filter(Boolean).join(', ');
+  const imei = text.match(/IMEI\s*(?:no\.?|number|1)?\s*[:.\-]?\s*(\d{15})\b/i);
+  const serial = text.match(/serial\s*(?:no\.?|number|#)\s*[:.\-]?\s*([A-Z0-9][A-Z0-9\-]{4,})/i);
+  r.serial = imei ? imei[1] : serial ? serial[1] : '';
+  const w = text.match(/(\d{1,2})\s*(years?|yrs?|months?)\s*(?:of\s*)?(?:(?:manufacturer(?:'s)?|brand|onsite|limited|comprehensive|standard|domestic)\s*)*warranty/i);
+  if (w) r.warrantyMonths = /^m/i.test(w[2]) ? +w[1] : +w[1] * 12;
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  const hi = lines.findIndex((l) => /\b(description|product\s*title|particulars|item\s*name)\b/i.test(l));
+  if (hi >= 0) {
+    for (let j = hi + 1; j < Math.min(lines.length, hi + 6); j++) {
+      let c = lines[j].replace(/^\d+\s*[.)]?\s+/, '').split(/\s*\|\s*|\s+HSN\b|\s+₹|\s+Rs\.?\s/i)[0].trim();
+      c = c.replace(/(\s+[\d,.]+)+\s*$/, '').trim();
+      if (c.length >= 4 && /[A-Za-z]{3,}/.test(c) && !/^(qty|quantity|unit|net|tax|total|hsn|sac|price|amount|discount|shipping)\b/i.test(c)) { r.product = c.slice(0, 100); break; }
+    }
+  }
+  if (r.product) { const hit = CAT_HINTS.find(([, re]) => re.test(r.product)); if (hit) r.category = hit[0]; }
+  const BRANDS = ['Apple', 'Samsung', 'OnePlus', 'Xiaomi', 'Redmi', 'Realme', 'Vivo', 'Oppo', 'Motorola', 'Nokia', 'Google', 'Sony', 'LG', 'Whirlpool',
+    'Philips', 'Bajaj', 'Prestige', 'boAt', 'HP', 'Dell', 'Lenovo', 'Asus', 'Acer', 'Panasonic', 'Godrej', 'Haier', 'Voltas', 'Havells', 'Crompton',
+    'Usha', 'Butterfly', 'Pigeon', 'IFB', 'Bosch', 'Dyson', 'JBL', 'Noise', 'Fire-Boltt', 'Canon', 'Epson', 'Nikon', 'Kent', 'Eureka Forbes', 'Mi'];
+  if (r.product) { const b = BRANDS.find((x) => r.product.toLowerCase().startsWith(x.toLowerCase()) && !/[a-z]/i.test(r.product.charAt(x.length))); if (b) r.brand = b === 'Redmi' || b === 'Mi' ? 'Xiaomi' : b; }
+  return r;
+}
+const DOC_RULES = [
+  ['PAN card', /permanent account number|income tax department/i],
+  ['Aadhaar card', /aadhaar|unique identification authority/i],
+  ['Driving licence', /driving licen[cs]e/i],
+  ['Voter ID', /election commission/i],
+  ['PUC certificate', /pollution under control|\bpuc\b/i],
+  ['Vehicle insurance', /(motor|private car|two[ -]wheeler|vehicle)[\s\S]{0,40}(policy|insurance)|(policy|insurance)[\s\S]{0,40}(motor|private car|two[ -]wheeler)/i],
+  ['Health insurance', /(health|mediclaim|medical)[\s\S]{0,30}(insurance|policy)/i],
+  ['Life insurance', /life[\s\S]{0,20}(insurance|assurance)/i],
+  ['Other insurance', /insurance policy|policy schedule|policy number/i],
+  ['Vehicle RC', /registration certificate/i],
+  ['Passport', /\bpassport\b/i],
+  ['Rent agreement', /rent agreement|rental agreement|leave and licen[cs]e/i],
+];
+function parseDoc(text) {
+  const r = {};
+  const rule = DOC_RULES.find(([, re]) => re.test(text));
+  if (rule) r.docType = rule[0];
+  const g = (re) => { const m = text.match(re); return m ? m[1].replace(/\s+/g, ' ').trim() : ''; };
+  const t = r.docType || '';
+  if (t === 'PAN card') r.number = g(/\b([A-Z]{5}\d{4}[A-Z])\b/);
+  else if (t === 'Aadhaar card') r.number = g(/\b(\d{4}\s\d{4}\s\d{4})\b/) || g(/\b([Xx*]{4}\s?[Xx*]{4}\s?\d{4})\b/);
+  else if (t === 'Passport') r.number = g(/\b([A-Z]\d{7})\b/);
+  else if (t === 'Driving licence') r.number = g(/\b([A-Z]{2}[-\s]?\d{2}[-\s]?(?:19|20)\d{2}\s?\d{7})\b/) || g(/\b([A-Z]{2}\d{13})\b/);
+  else if (t === 'Voter ID') r.number = g(/\b([A-Z]{3}\d{7})\b/);
+  else if (t === 'Vehicle RC' || t === 'PUC certificate') r.number = g(/\b([A-Z]{2}[\s-]?\d{1,2}[\s-]?[A-Z]{1,3}[\s-]?\d{4})\b/);
+  else if (/insurance/i.test(t)) r.number = g(/policy\s*(?:no\.?|number|#)\s*[:.\-]?\s*([A-Z0-9][A-Z0-9\/\-]{5,})/i);
+  const period = text.match(/(?:period\s*of\s*insurance|policy\s*period|insurance\s*period|period\s*of\s*cover)[\s\S]{0,140}/i);
+  const pd = period ? findDates(period[0]) : [];
+  if (pd.length >= 2) { r.issueDate = pd[0].iso; r.expiryDate = pd[pd.length - 1].iso; }
+  if (!r.expiryDate) r.expiryDate = dateAfter(text, [/valid\s*(?:till|upto|up\s*to|until)/i, /date\s*of\s*expiry|expiry\s*date|expires?\s*on/i, /(?:policy\s*)?end\s*date/i]);
+  if (!r.issueDate) r.issueDate = dateAfter(text, [/date\s*of\s*issue|issue\s*date|issued\s*on/i, /(?:policy\s*)?start\s*date/i]);
+  return r;
+}
+// Fills fields you haven't typed in yet, then tells you what was filled.
+async function autofillFrom(kind, form, files, touched, after) {
+  const pdf = files.find(isPdf);
+  if (!pdf) return;
+  const note = $('#afNote');
+  note.hidden = false; note.textContent = 'Reading the PDF to fill in details…';
+  let text = '';
+  try { text = await pdfText(pdf); } catch { text = ''; }
+  if (!document.contains(form)) return;
+  if (!text.trim()) { note.textContent = 'This PDF has no readable text (it may be a scan). Please fill in the details.'; return; }
+  const r = kind === 'bills' ? parseBill(text) : parseDoc(text);
+  const labels = { brand: 'brand', product: 'product', category: 'category', store: 'store', purchaseDate: 'date', price: 'price', serial: 'serial number', notes: 'order number', docType: 'type', number: 'number', issueDate: 'issue date', expiryDate: 'expiry date' };
+  const filled = [];
+  const set = (name, value) => {
+    const el = form.elements[name];
+    if (!el || value == null || value === '' || touched.has(name)) return false;
+    if (el.tagName === 'SELECT' && ![...el.options].some((o) => o.value === value)) return false;
+    el.value = value; el.classList.add('filled');
+    return true;
+  };
+  for (const [name, value] of Object.entries(r)) {
+    if (name === 'warrantyMonths') continue;
+    if (set(name, value)) filled.push(labels[name] || name);
+  }
+  if (kind === 'bills' && r.warrantyMonths && !touched.has('wNum')) {
+    const yrs = r.warrantyMonths % 12 === 0;
+    form.wNum.value = yrs ? r.warrantyMonths / 12 : r.warrantyMonths; form.wUnit.value = yrs ? '12' : '1';
+    form.wNum.classList.add('filled'); filled.push('warranty');
+  }
+  if (kind === 'docs' && filled.includes('type')) form.docType.dispatchEvent(new Event('change', { bubbles: true }));
+  if (after) after();
+  note.textContent = filled.length
+    ? `Filled in from the PDF: ${filled.join(', ')}. Please check before saving.`
+    : 'Couldn\'t find details in this PDF. Please fill them in.';
+}
+
+/* ---------- Files shared to Kagaz from other apps ---------- */
+const SHARE_CACHE = 'kagaz-shared';
+const sharedPromise = (async () => {
+  if (!new URLSearchParams(location.search).has('shared')) return null;
+  history.replaceState(null, '', location.pathname);
+  try {
+    const cache = await caches.open(SHARE_CACHE);
+    const metaRes = await cache.match('shared/meta');
+    if (!metaRes) return null;
+    const meta = await metaRes.json();
+    const files = [];
+    for (const key of meta.files) {
+      const res = await cache.match(key);
+      if (!res) continue;
+      const blob = await res.blob();
+      files.push(new File([blob], decodeURIComponent(res.headers.get('X-Name') || 'file'), { type: blob.type || res.headers.get('Content-Type') || '' }));
+    }
+    await caches.delete(SHARE_CACHE);
+    return { files, title: meta.title || '' };
+  } catch { return null; }
+})();
+async function handleShared() {
+  const sh = await sharedPromise;
+  if (!sh || handleShared.done) return;
+  handleShared.done = true;
+  if (!sh.files.length) return toast('Share a photo or PDF to Kagaz to save it.', true);
+  openSheet(`${head('Save to Kagaz')}
+    <p class="sheet-sub">You shared ${sh.files.length === 1 ? 'a file' : `${sh.files.length} files`}. What is it?</p>
+    <ul class="files" style="margin-bottom:18px">${sh.files.map((f) => `<li><span class="name">${esc(f.name)}</span></li>`).join('')}</ul>
+    <div class="actions">
+      <button class="btn primary" id="asBill">${icon.camera} It's a bill or invoice</button>
+      <button class="btn" id="asDoc">${icon.file} It's a document</button>
+    </div>`);
+  $('#asBill').onclick = () => { state.view = 'bills'; renderAll(); openBillForm(null, sh.files); };
+  $('#asDoc').onclick = () => { state.view = 'docs'; renderAll(); openDocForm(null, sh.files); };
+}
+
 /* ---------- Bills: detail + form ---------- */
 function openBillDetail(it) {
   const w = billStatus(it);
@@ -1426,12 +1665,13 @@ async function confirmDelete(btn, kind, o, name) {
   try { await deleteObj(kind, o); closeSheet(); renderAll(); toast('Deleted'); }
   catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Delete'; }
 }
-function openBillForm(existing) {
+function openBillForm(existing, sharedFiles = []) {
   const it = existing || { product: '', brand: '', category: '', store: '', purchaseDate: toISO(today()), price: null, warrantyMonths: 12, serial: '', notes: '', files: [] };
   const inYears = it.warrantyMonths > 0 && it.warrantyMonths % 12 === 0;
-  const pending = [], removeIds = new Set();
+  const pending = [...sharedFiles], removeIds = new Set();
   openSheet(`${head(existing ? 'Edit bill' : 'Add bill')}
     <form class="form" id="billForm" novalidate>
+      <p class="autofill" id="afNote" hidden></p>
       <label class="field"><span>Product name</span><input name="product" required maxlength="120" value="${esc(it.product)}" placeholder="e.g. Samsung 43 inch TV" autocomplete="off" /></label>
       <div class="row2">
         <label class="field"><span>Brand</span><input name="brand" maxlength="60" value="${esc(it.brand)}" autocomplete="off" /></label>
@@ -1461,7 +1701,11 @@ function openBillForm(existing) {
   ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (['wNum', 'wUnit', 'purchaseDate'].includes(e.target.name)) updateHint(); }));
   updateHint();
   wireAddNew(form.category, askNewCategory, categoryOptions);
-  wireFilePicker(pending, removeIds);
+  const touched = new Set();
+  ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (e.isTrusted && e.target.name) { touched.add(e.target.name); e.target.classList.remove('filled'); } }));
+  const fill = (files) => { if (!existing) autofillFrom('bills', form, files, touched, updateHint); };
+  wireFilePicker(pending, removeIds, fill);
+  if (sharedFiles.length) fill(sharedFiles);
   form.onsubmit = async (e) => {
     e.preventDefault();
     const product = form.product.value.trim();
@@ -1519,17 +1763,18 @@ async function openDocDetail(d) {
   $('#shareBtn').onclick = () => openShare('docs', d);
   $('#delBtn').onclick = (e) => confirmDelete(e.target, 'docs', d, title);
 }
-async function openDocForm(existing) {
+async function openDocForm(existing, sharedFiles = []) {
   let number = existing?.number || '';
   if (existing?.encrypted && number) {
     try { await ensureVaultKey(); number = await decText(vault.key, number); }
     catch (e) { return toast(e.message || 'Unlock your vault to edit this document.', true); }
   }
   const d = existing || { docType: '', title: '', holder: 'Me', issueDate: '', expiryDate: '', notes: '', files: [], encrypted: false };
-  const pending = [], removeIds = new Set();
+  const pending = [...sharedFiles], removeIds = new Set();
   const holders = [...new Set(['Me', ...state.docs.map((x) => x.holder).filter(Boolean)])];
   openSheet(`${head(existing ? 'Edit document' : 'Add document')}
     <form class="form" id="docForm" novalidate>
+      <p class="autofill" id="afNote" hidden></p>
       <label class="field"><span>Document type</span><select name="docType" required>${docTypeOptions(d.docType)}</select></label>
       <div class="row2">
         <label class="field"><span>Name it (optional)</span><input name="title" maxlength="80" value="${esc(d.title && d.title !== d.docType ? d.title : '')}" placeholder="e.g. Car insurance" autocomplete="off" /></label>
@@ -1566,7 +1811,11 @@ async function openDocForm(existing) {
   });
   updateHint();
   wireAddNew(form.docType, askNewDocType, docTypeOptions, updateHint);
-  wireFilePicker(pending, removeIds);
+  const touched = new Set();
+  ['input', 'change'].forEach((ev) => form.addEventListener(ev, (e) => { if (e.isTrusted && e.target.name) { touched.add(e.target.name); e.target.classList.remove('filled'); } }));
+  const fill = (files) => { if (!existing) autofillFrom('docs', form, files, touched, updateHint); };
+  wireFilePicker(pending, removeIds, fill);
+  if (sharedFiles.length) fill(sharedFiles);
   form.onsubmit = async (e) => {
     e.preventDefault();
     const docType = form.docType.value === NEW ? '' : form.docType.value;
@@ -1766,6 +2015,7 @@ async function startApp() {
     toast(err.message, true); state.loaded = true;
   }
   renderAll();
+  if (state.spreadsheetId) handleShared();
 }
 function signOut() {
   const sess = getSession();
