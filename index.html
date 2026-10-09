@@ -494,6 +494,26 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 .imrow .st small { color: var(--muted); font-size: 13px; }
 .imrow > .num { font-weight: 600; }
 .imrow.dup { opacity: .6; }
+
+/* Life */
+.modgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.modcard { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 16px; padding: 14px; min-height: 84px; display: grid; align-content: start; gap: 4px; }
+.modcard:hover { border-color: var(--accent); }
+.modcard b { font-size: 16px; }
+.modcard small { color: var(--muted); font-size: 13px; }
+button.payrow { width: 100%; border: 0; border-top: 1px solid var(--line); background: transparent; text-align: left; }
+button.payrow:first-of-type { border-top: 0; }
+.lrow small { line-height: 1.4; }
+.quick, .ask { display: flex; gap: 6px; align-items: center; }
+.quick .inp, .ask .inp { flex: 1; min-width: 0; min-height: 46px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.ask { margin-bottom: 12px; }
+.ask .btn { min-height: 46px; }
+#askA { margin-bottom: 14px; }
+.tab { font-size: 14px; padding: 0 2px; }
+.fxrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: -4px; }
+.fxrow select, .fxrow input { min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); }
+.fxrow input { flex: 1; min-width: 140px; }
+.fxrow small { width: 100%; }
 .files li .name small{white-space:normal}</style>
 </head>
 <body>
@@ -535,6 +555,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
         <button class="tab" role="tab" data-view="bills" aria-selected="true">Bills<span class="dot" id="dotBills" hidden></span></button>
         <button class="tab" role="tab" data-view="exps" aria-selected="false">Money</button>
         <button class="tab" role="tab" data-view="docs" aria-selected="false">Docs<span class="dot" id="dotDocs" hidden></span></button>
+        <button class="tab" role="tab" data-view="life" aria-selected="false">Life</button>
         <button class="tab" role="tab" data-view="wallet" aria-selected="false">Wallet</button>
       </div>
     </nav>
@@ -619,8 +640,9 @@ const LEGACY_SHEETS = ['PaperNest Data', 'InvoiceVault Data'];
 const SETTINGS_TAB = 'Settings';
 const COL = {
   bills: { tab: 'Invoices', last: 'M', headers: ['id', 'product', 'brand', 'category', 'store', 'purchaseDate', 'price', 'warrantyMonths', 'serial', 'notes', 'files', 'createdAt', 'updatedAt'] },
-  exps: { tab: 'Expenses', last: 'J', headers: ['id', 'date', 'amount', 'category', 'method', 'note', 'createdAt', 'updatedAt', 'type', 'account'] },
+  exps: { tab: 'Expenses', last: 'L', headers: ['id', 'date', 'amount', 'category', 'method', 'note', 'createdAt', 'updatedAt', 'type', 'account', 'currency', 'fxAmount'] },
   loans: { tab: 'People', last: 'J', headers: ['id', 'person', 'direction', 'amount', 'date', 'note', 'repaid', 'settled', 'createdAt', 'updatedAt'] },
+  life: { tab: 'Life', last: 'H', headers: ['id', 'module', 'title', 'data', 'due', 'dueDay', 'createdAt', 'updatedAt'] },
   docs: { tab: 'Documents', last: 'L', headers: ['id', 'docType', 'title', 'holder', 'number', 'issueDate', 'expiryDate', 'notes', 'files', 'encrypted', 'createdAt', 'updatedAt'] },
 };
 const CATEGORIES = ['Mobile & gadgets', 'Electronics', 'Home appliances', 'Kitchen', 'Furniture', 'Vehicle', 'Clothing & footwear', 'Tools', 'Other'];
@@ -790,6 +812,8 @@ const icon = {
   lock: '<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
   key: '<svg class="i" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>',
   wallet: '<svg class="i" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12v4"/><path d="M4 7v10a2 2 0 0 0 2 2h14V9H6a2 2 0 0 1-2-2z"/><circle cx="16" cy="14" r="1.2"/></svg>',
+  mic: '<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
+  ask: '<svg class="i" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.2M12 17v.01"/></svg>',
   upload: '<svg class="i" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>',
   plus: '<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   share: '<svg class="i" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>',
@@ -1238,7 +1262,7 @@ async function ensureSheet(folderId) {
   const metaUrl = `${SHEETS}/${id}?fields=sheets.properties(sheetId,title)`;
   let meta = await api(metaUrl);
   const have = new Set(meta.sheets.map((s) => s.properties.title));
-  const needed = [[COL.bills.tab, COL.bills.headers, COL.bills.last], [COL.docs.tab, COL.docs.headers, COL.docs.last], [COL.exps.tab, COL.exps.headers, COL.exps.last], [COL.loans.tab, COL.loans.headers, COL.loans.last], [SETTINGS_TAB, ['key', 'value'], 'B']];
+  const needed = [[COL.bills.tab, COL.bills.headers, COL.bills.last], [COL.docs.tab, COL.docs.headers, COL.docs.last], [COL.exps.tab, COL.exps.headers, COL.exps.last], [COL.loans.tab, COL.loans.headers, COL.loans.last], [COL.life.tab, COL.life.headers, COL.life.last], [SETTINGS_TAB, ['key', 'value'], 'B']];
   const requests = [], newTabs = [];
   let renameFirst = created && !have.has(COL.bills.tab);
   for (const [title, headers, last] of needed) {
@@ -1271,12 +1295,13 @@ function rowToObj(kind, row) {
   if (kind === 'bills') { o.price = o.price === '' ? null : Number(o.price); o.warrantyMonths = Number(o.warrantyMonths) || 0; }
   else if (kind === 'docs') o.encrypted = o.encrypted === '1' || o.encrypted === 'TRUE' || o.encrypted === true;
   else if (kind === 'exps') o.amount = Number(o.amount) || 0;
+  else if (kind === 'life') { o.raw = o.data; o.locked = String(o.data).startsWith('enc:'); try { o.data = o.locked ? {} : JSON.parse(o.data || '{}'); } catch { o.data = {}; } }
   else if (kind === 'loans') { o.amount = Number(o.amount) || 0; try { o.repaid = JSON.parse(o.repaid || '[]'); } catch { o.repaid = []; } o.settled = o.settled === '1' || o.settled === true; }
   return o;
 }
 function objToRow(kind, o) {
   return COL[kind].headers.map((h) => (h === 'files' ? JSON.stringify(o.files || []) : h === 'repaid' ? JSON.stringify(o.repaid || [])
-    : h === 'encrypted' || h === 'settled' ? (o[h] ? '1' : '') : o[h] == null ? '' : String(o[h])));
+    : h === 'encrypted' || h === 'settled' ? (o[h] ? '1' : '') : o[h] == null ? '' : typeof o[h] === 'object' ? JSON.stringify(o[h]) : String(o[h])));
 }
 async function loadKind(kind) {
   const c = COL[kind];
@@ -1298,7 +1323,7 @@ async function loadBalances() {
     state.balances = (r.values || []).filter((x) => x[1] && x[2]).map((x) => ({ date: String(x[0]), account: String(x[1]), balance: Number(String(x[2]).replace(/,/g, '')) || 0, at: String(x[3] || x[0]) }));
   } catch { state.balances = []; }
 }
-async function loadAll() { await Promise.all([loadKind('bills'), loadKind('docs'), loadKind('exps'), loadKind('loans'), loadSettings(), loadBalances()]); state.loaded = true; }
+async function loadAll() { await Promise.all([loadKind('bills'), loadKind('docs'), loadKind('exps'), loadKind('loans'), loadKind('life'), loadSettings(), loadBalances()]); state.loaded = true; }
 // Row positions shift when rows are deleted, so always look up the current row by id.
 async function findRow(kind, id) {
   const r = await api(vurl(`${COL[kind].tab}!A:A`));
@@ -1490,9 +1515,10 @@ function wireFilePicker(pending, removeIds, onAdded) {
 function renderAll() {
   $('#summary').onclick = null;
   renderTabs();
-  const w = state.view === 'wallet', sp = state.view === 'exps';
-  $('.controls').hidden = w || sp; $('#addBtn').hidden = w;
+  const w = state.view === 'wallet', sp = state.view === 'exps', lf = state.view === 'life';
+  $('.controls').hidden = w || sp || lf; $('#addBtn').hidden = w || lf;
   if (w) { renderWallet(); return; }
+  if (lf) { if (state.loaded) renderLife(); else { renderSummary(); renderList(); } return; }
   if (sp) { if (state.loaded) renderSpends(); else { renderSummary(); renderList(); } return; }
   renderSummary(); renderControls(); renderList();
 }
@@ -1779,14 +1805,22 @@ function parseDoc(text) {
 // Fills fields you haven't typed in yet, then tells you what was filled.
 async function autofillFrom(kind, form, files, touched, after) {
   const pdf = files.find(isPdf);
-  if (!pdf) return;
+  const photo = files.find((f) => /^image\//.test(f.type));
   const note = $('#afNote');
-  note.hidden = false; note.textContent = 'Reading the PDF to fill in details…';
-  let text = '';
-  try { text = await pdfText(pdf); } catch { text = ''; }
-  if (!document.contains(form)) return;
-  if (!text.trim()) { note.textContent = 'This PDF has no readable text (it may be a scan). Please fill in the details.'; return; }
-  const r = kind === 'bills' ? parseBill(text) : parseDoc(text);
+  let r;
+  if (pdf) {
+    note.hidden = false; note.textContent = 'Reading the PDF to fill in details…';
+    let text = '';
+    try { text = await pdfText(pdf); } catch { text = ''; }
+    if (!document.contains(form)) return;
+    if (!text.trim()) { note.textContent = 'This PDF has no readable text (it may be a scan). Please fill in the details.'; return; }
+    r = kind === 'bills' ? parseBill(text) : parseDoc(text);
+  } else if (photo && kind === 'bills' && scriptUrl()) {
+    note.hidden = false; note.textContent = 'Reading the photo with AI…';
+    try { r = await readBillPhotoAi(photo); } catch (err) { note.textContent = `AI couldn't read it: ${err.message}`; return; }
+    if (!document.contains(form)) return;
+    Object.keys(r).forEach((k) => { if (r[k] == null || r[k] === '') delete r[k]; else if (typeof r[k] === 'number' && k !== 'warrantyMonths') r[k] = String(r[k]); });
+  } else return;
   const labels = { brand: 'brand', product: 'product', category: 'category', store: 'store', purchaseDate: 'date', price: 'price', serial: 'serial number', notes: 'order number', docType: 'type', number: 'number', issueDate: 'issue date', expiryDate: 'expiry date' };
   const filled = [];
   const set = (name, value) => {
@@ -1808,7 +1842,7 @@ async function autofillFrom(kind, form, files, touched, after) {
   if (kind === 'docs' && filled.includes('type')) form.docType.dispatchEvent(new Event('change', { bubbles: true }));
   if (after) after();
   note.textContent = filled.length
-    ? `Filled in from the PDF: ${filled.join(', ')}. Please check before saving.`
+    ? `Filled in from the ${pdf ? 'PDF' : 'photo'}: ${filled.join(', ')}. Please check before saving.`
     : 'Couldn\'t find details in this PDF. Please fill them in.';
 }
 
@@ -1863,10 +1897,12 @@ function openBillDetail(it) {
     <div class="actions">
       <button class="btn" id="shareBtn">${icon.share} Share</button>
       ${canRemind ? `<a class="btn" href="${esc(calendarLink(`Warranty ending: ${it.product}`, w.expiry, 14, details))}" target="_blank" rel="noopener">${icon.bell} Add calendar reminder</a>` : ''}
+      ${canRemind && scriptUrl() ? `<button class="btn" id="claimBtn">${icon.ask} Draft a claim email</button>` : ''}
       <div class="two"><button class="btn danger" id="delBtn">Delete</button><button class="btn primary" id="editBtn">Edit</button></div>
     </div>`);
   mountFiles(it.files);
   $('#editBtn').onclick = () => openBillForm(it);
+  const cb2 = $('#claimBtn'); if (cb2) cb2.onclick = () => draftClaim(it);
   $('#shareBtn').onclick = () => openShare('bills', it);
   $('#delBtn').onclick = (e) => confirmDelete(e.target, 'bills', it, it.product);
 }
@@ -2523,9 +2559,13 @@ function renderSpends() {
       s.insertAdjacentHTML('beforeend', `<p class="delta ${diff > 0 ? 'up' : 'down'}">Spent <span class="num">${inr.format(Math.abs(diff))}</span> ${diff > 0 ? 'more' : 'less'} than ${ymLabel(ymShift(ym, -1), { month: 'long' })}${ym === thisYm ? ' so far' : ''}</p>`);
     }
   }
+  if (mode === 'month' && ym === thisYm && t.out && today().getDate() >= 5) {
+    const projected = (t.out / daysSoFar) * days;
+    s.insertAdjacentHTML('beforeend', `<p>At this pace: about <b class="num">${inr.format(projected)}</b> spent by ${fmtDate(parseDate(r.to)).replace(/ \d{4}$/, '')}</p>`);
+  }
   const unsorted = inAcct.filter((x) => isAuto(x) && (x.category === 'Other' || x.category === 'Other income')).length;
   if (unsorted) s.insertAdjacentHTML('beforeend', `<button class="alert" id="sortAuto">${icon.warn}<span><b>${unsorted} auto-added entr${unsorted === 1 ? 'y needs' : 'ies need'} a category.</b> Tap to sort. Kagaz learns as you go.</span></button>`);
-  s.insertAdjacentHTML('beforeend', `<div class="tools"><button class="mini" id="toolImport">${icon.upload} Import statement</button><button class="mini" id="toolExport">${icon.install} Export</button><button class="mini" id="toolSettings">${icon.key} Budgets and alerts</button></div>`);
+  s.insertAdjacentHTML('beforeend', `<div class="tools"><button class="mini" id="toolImport">${icon.upload} Import statement</button><button class="mini" id="toolExport">${icon.install} Export</button><button class="mini" id="toolSettings">${icon.key} Budgets and alerts</button><button class="mini" id="toolAsk">${icon.ask} Ask</button></div>`);
   s.onclick = (e) => {
     const c = e.target.closest('[data-acct]');
     if (c) { state.acct = c.dataset.acct; state.expCat = null; renderAll(); return; }
@@ -2541,7 +2581,8 @@ function renderSpends() {
     if (e.target.closest('#sortAuto')) { state.flow = 'all'; state.expCat = '__unsorted'; renderAll(); return; }
     if (e.target.closest('#toolImport')) { importStatement(); return; }
     if (e.target.closest('#toolExport')) { openExport(inAcct, label + (acct === 'all' ? '' : ` ${acct}`), t); return; }
-    if (e.target.closest('#toolSettings')) { openMoneySettings(); }
+    if (e.target.closest('#toolSettings')) { openMoneySettings(); return; }
+    if (e.target.closest('#toolAsk')) openAsk();
   };
 
   const el = $('#list');
@@ -2563,7 +2604,7 @@ function renderSpends() {
       const pct = (spent / v) * 100;
       return `<div class="budrow ${pct >= 100 ? 'over' : pct >= 80 ? 'near' : ''}"><span class="cn"><i style="background:${catColor(c)}"></i>${esc(c)}</span>
         <span class="num">${inr.format(spent)} of ${inr.format(v)}</span><span class="bar"><i style="width:${Math.min(100, pct).toFixed(1)}%"></i></span>
-        <small>${pct >= 100 ? `${inr.format(spent - v)} over budget` : `${inr.format(v - spent)} left`}</small></div>`;
+        <small>${pct >= 100 ? `${inr.format(spent - v)} over budget` : `${inr.format(v - spent)} left`}${(() => { if (ym !== thisYm || today().getDate() < 5 || pct >= 100) return ''; const proj = (spent / daysSoFar) * days; return proj > v ? `, likely to go over by ${inr.format(proj - v)}` : ''; })()}</small></div>`;
     });
     budgetBlock = rowsB.length ? `<section class="sblock"><p class="section-title">Budgets this month</p>${rowsB.join('')}</section>`
       : `<section class="sblock"><p class="section-title">Budgets</p><p class="hint" style="margin:0 0 10px">Set a monthly limit for categories like Food or Fuel. Kagaz warns you at 80% and 100%.</p><button class="btn" id="setBudgets" style="width:100%">Set budgets</button></section>`;
@@ -2635,7 +2676,7 @@ function renderSpends() {
     ${groups.length ? groups.map((g) => { const gt = totalsOf(g.items); return `<div class="dayhead"><span>${dayName(g.date)}</span><span class="num">${gt.inn ? `+${inr.format(gt.inn)} ` : ''}${gt.out ? inr.format(gt.out) : ''}</span></div>
       ${g.items.map((x) => `<button class="srow ${state.selecting && sel.has(selKey(x)) ? 'picked' : ''}" data-sid="${esc(x.id)}" data-skind="${x.kind}">
         ${state.selecting ? `<span class="selbox">${sel.has(selKey(x)) ? '<svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg>' : ''}</span>` : `<i class="sdot" style="background:${catColor(x.category)}"></i>`}
-        <span class="st"><b>${esc(x.note || x.category)}${isBig(x) ? ' <span class="tag-big">Large</span>' : ''}</b><small>${[x.note ? x.category : '', x.kind === 'bill' ? 'from Bills' : acctName(x.account), x.method, isAuto(x) ? 'auto' : String(x.id).startsWith('stmt-') ? 'statement' : ''].filter(Boolean).map(esc).join(', ')}</small></span>
+        <span class="st"><b>${esc(x.note || x.category)}${isBig(x) ? ' <span class="tag-big">Large</span>' : ''}</b><small>${[x.note ? x.category : '', x.kind === 'bill' ? 'from Bills' : acctName(x.account), x.method, x.o.currency ? `${x.o.currency} ${x.o.fxAmount}` : '', isAuto(x) ? 'auto' : String(x.id).startsWith('stmt-') ? 'statement' : ''].filter(Boolean).map(esc).join(', ')}</small></span>
         <span class="sa num ${x.type === 'in' ? 'in' : ''} ${counted(x) ? '' : 'muted'}">${signed(x)}</span></button>`).join('')}`; }).join('')
       : '<p class="hint" style="padding:12px 16px">No entries match.</p>'}
   </section>`;
@@ -2707,8 +2748,12 @@ function openSpendForm(existing) {
     + '<button type="button" class="chip" id="newAcct">+ New</button>';
   openSheet(`${head(existing ? 'Edit entry' : 'Add entry')}
     <form class="form" id="spForm" novalidate>
+      ${existing ? '' : `<div class="quick"><input class="inp" id="qText" placeholder="Paid 250 for lunch with UPI" autocomplete="off" /><button type="button" class="icon-btn" id="qMic" aria-label="Say it">${icon.mic}</button></div>`}
       <div class="seg" id="spType"><button type="button" data-t="out" aria-pressed="${type === 'out'}">Money out</button><button type="button" data-t="in" aria-pressed="${type === 'in'}">Money in</button></div>
       <label class="amount-in"><span>₹</span><input name="amount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0" value="${esc(x ? x.amount : '')}" aria-label="Amount" /></label>
+      <div class="fxrow"><select name="cur" aria-label="Currency">${CURRENCIES.map((c) => `<option ${c === (existing?.currency || 'INR') ? 'selected' : ''}>${c}</option>`).join('')}</select>
+        <input name="fxAmt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Amount in this currency" value="${esc(existing?.fxAmount || '')}" ${existing?.currency && existing.currency !== 'INR' ? '' : 'hidden'} />
+        <small class="hint" id="fxInfo"></small></div>
       <div><p class="section-title" id="catTitle">${type === 'in' ? 'Type' : 'Category'}</p><div class="chips wrapchips" id="spCats">${catChips()}</div></div>
       <div><p class="section-title">Account</p><div class="chips wrapchips" id="spAccts">${acctChips()}</div></div>
       <div><p class="section-title">How</p><div class="chips wrapchips" id="spMethods">${METHODS.map((mm) => `<button type="button" class="chip" data-m="${mm}" aria-pressed="${mm === method}">${mm}</button>`).join('')}</div></div>
@@ -2722,6 +2767,31 @@ function openSpendForm(existing) {
     </form>`);
   const form = $('#spForm');
   if (!existing) setTimeout(() => form.amount.focus(), 60);
+  let rate = null;
+  const fxUpdate = async () => {
+    const cur = form.cur.value;
+    form.fxAmt.hidden = cur === 'INR';
+    if (cur === 'INR') { $('#fxInfo').textContent = ''; return; }
+    if (!rate || rate.cur !== cur) { $('#fxInfo').textContent = 'Getting today\'s rate…'; const r = await fxRate(cur); rate = r ? { cur, v: r } : null; }
+    if (!rate) { $('#fxInfo').textContent = 'Couldn\'t get the rate. Type the rupee amount above.'; return; }
+    $('#fxInfo').textContent = `1 ${cur} = ₹${rate.v.toFixed(2)} today`;
+    const fa = Number(form.fxAmt.value);
+    if (fa > 0) form.amount.value = Math.round(fa * rate.v * 100) / 100;
+  };
+  form.cur.onchange = fxUpdate; form.fxAmt.oninput = fxUpdate;
+  const applyQuick = (text) => {
+    $('#qText').value = text;
+    const q = parseQuick(text);
+    if (q.type && q.type !== type) $(`#spType [data-t="${q.type}"]`).click();
+    if (q.amount) form.amount.value = q.amount;
+    if (q.category) { cat = q.category; $('#spCats').innerHTML = catChips(); }
+    if (q.method) { method = q.method; $('#spMethods').querySelectorAll('[data-m]').forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.m === method))); }
+    if (q.account) { account = q.account; $('#spAccts').innerHTML = acctChips(); }
+    if (q.date) form.date.value = q.date;
+    if (q.note) form.note.value = q.note;
+  };
+  const qt = $('#qText');
+  if (qt) { qt.addEventListener('change', () => qt.value.trim() && applyQuick(qt.value.trim())); qt.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); applyQuick(qt.value.trim()); } }); $('#qMic').onclick = () => listen(applyQuick); }
   $('#spType').onclick = (e) => {
     const b = e.target.closest('[data-t]'); if (!b || b.dataset.t === type) return;
     type = b.dataset.t;
@@ -2765,7 +2835,8 @@ function openSpendForm(existing) {
     const amount = Math.round(Number(form.amount.value) * 100) / 100;
     if (!(amount > 0)) { toast('Enter the amount.', true); return form.amount.focus(); }
     const date = form.date.value || toISO(today());
-    const data = { date, amount: String(amount), category: cat, method, note: form.note.value.trim(), type, account };
+    const data = { date, amount: String(amount), category: cat, method, note: form.note.value.trim(), type, account,
+      currency: form.cur.value === 'INR' ? '' : form.cur.value, fxAmount: form.cur.value === 'INR' ? '' : form.fxAmt.value };
     if (type === 'out') lsSet('iv.lastSpendCat', cat);
     lsSet('iv.lastSpendMethod', method); lsSet('iv.lastAccount', account);
     if (!state.expRange) state.expMonth = date.slice(0, 7);
@@ -3133,6 +3204,475 @@ function reviewImport(txns, guessAcct) {
   render();
 }
 
+
+/* ---------- Life: investments, loans, cards, vehicles, health, home, nominees ---------- */
+const LIFE = {
+  invest: { name: 'Investments', hint: 'SIPs, FDs, PPF, stocks, gold', title: 'Name (e.g. HDFC Flexi Cap SIP)',
+    fields: [['kind', 'Type', 'select', ['Mutual fund', 'SIP', 'Fixed deposit', 'RD', 'PPF', 'EPF', 'NPS', 'Stocks', 'Gold', 'Other']], ['where', 'With (bank or app)'],
+      ['invested', 'Amount invested', 'money'], ['value', 'Current value', 'money'], ['monthly', 'Monthly SIP amount', 'money'], ['sipDay', 'SIP date (day of month)', 'day'],
+      ['maturity', 'Maturity date', 'date'], ['nominee', 'Nominee'], ['notes', 'Notes', 'text']],
+    line: (d) => d.value ? `Worth ${inr.format(d.value)}${d.invested ? `, ${d.value >= d.invested ? 'up' : 'down'} ${inr.format(Math.abs(d.value - d.invested))}` : ''}` : d.kind || '' },
+  loans: { name: 'Loans and EMIs', hint: 'Home, car, personal loans', title: 'Name (e.g. Home loan, SBI)',
+    fields: [['kind', 'Type', 'select', ['Home', 'Car', 'Personal', 'Education', 'Gold', 'Two-wheeler', 'Other']], ['lender', 'Lender'], ['principal', 'Loan amount', 'money'],
+      ['outstanding', 'Outstanding now', 'money'], ['emi', 'EMI', 'money'], ['emiDay', 'EMI date (day of month)', 'day'], ['rate', 'Interest rate (%)', 'number'], ['endDate', 'Last EMI date', 'date'], ['notes', 'Notes', 'text']],
+    line: (d) => [d.emi ? `EMI ${inr.format(d.emi)}` : '', d.outstanding && d.emi ? `about ${Math.ceil(d.outstanding / d.emi)} EMIs left` : ''].filter(Boolean).join(', ') },
+  cards: { name: 'Credit cards', hint: 'Due dates, limits, rewards', title: 'Card name (e.g. ICICI Amazon Pay)',
+    fields: [['last4', 'Last 4 digits'], ['limit', 'Credit limit', 'money'], ['billDay', 'Statement date (day)', 'day'], ['dueDay', 'Payment due date (day)', 'day'],
+      ['outstanding', 'Amount due now', 'money'], ['rewards', 'Reward points'], ['annualFee', 'Annual fee', 'money'], ['notes', 'Notes', 'text']],
+    line: (d) => [d.outstanding ? `Due ${inr.format(d.outstanding)}` : '', d.limit ? `limit ${inr.format(d.limit)}` : ''].filter(Boolean).join(', ') },
+  vehicle: { name: 'Vehicles', hint: 'Service, insurance, PUC', title: 'Vehicle (e.g. Swift, MH12AB1234)',
+    fields: [['kind', 'Type', 'select', ['Car', 'Bike', 'Scooter', 'Other']], ['regNo', 'Registration number'], ['odometer', 'Odometer (km)', 'number'],
+      ['lastService', 'Last service date', 'date'], ['serviceMonths', 'Service every (months)', 'number'], ['insurance', 'Insurance expiry', 'date'], ['puc', 'PUC expiry', 'date'], ['notes', 'Notes', 'text']],
+    line: (d) => [d.regNo, d.odometer ? `${Number(d.odometer).toLocaleString('en-IN')} km` : ''].filter(Boolean).join(', ') },
+  health: { name: 'Health', hint: 'Medicines, checkups, vaccines', title: 'What (e.g. Thyroid medicine, Annual checkup)',
+    fields: [['person', 'For whom'], ['kind', 'Type', 'select', ['Medicine', 'Checkup', 'Vaccination', 'Test', 'Doctor visit', 'Other']], ['doctor', 'Doctor or hospital'],
+      ['next', 'Next date', 'date'], ['repeat', 'Repeats every (months)', 'number'], ['notes', 'Notes', 'text']],
+    line: (d) => [d.person, d.kind].filter(Boolean).join(', ') },
+  home: { name: 'Home inventory', hint: 'Valuables for insurance claims', title: 'Item (e.g. Gold chain, Laptop)',
+    fields: [['room', 'Where it is'], ['value', 'Value', 'money'], ['bought', 'Bought on', 'date'], ['insured', 'Insured', 'select', ['No', 'Yes']], ['serial', 'Serial or ID'], ['notes', 'Notes', 'text']],
+    line: (d) => [d.value ? inr.format(d.value) : '', d.insured === 'Yes' ? 'insured' : ''].filter(Boolean).join(', ') },
+  nominee: { name: 'Nominees and emergency', hint: 'Who to call, where things are', title: 'Title (e.g. SBI savings account)', secure: true,
+    fields: [['kind', 'Type', 'select', ['Bank account', 'Insurance', 'Investment', 'Locker', 'Property', 'Emergency contact', 'Important info']],
+      ['nominee', 'Nominee or contact person'], ['phone', 'Phone'], ['details', 'Details (account no., policy no., where papers are)', 'text']],
+    line: (d) => [d.kind, d.nominee ? `nominee ${d.nominee}` : ''].filter(Boolean).join(', ') },
+};
+function nextMonthly(day) {
+  if (!(day >= 1 && day <= 31)) return null;
+  const t = today();
+  const at = (y, m) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()));
+  const d = at(t.getFullYear(), t.getMonth());
+  return d >= t ? d : at(t.getFullYear(), t.getMonth() + 1);
+}
+// Next date that needs attention for a record, with a short label.
+function lifeDue(r) {
+  const d = r.data || {}, c = [];
+  const add = (date, label) => { if (date && !isNaN(date)) c.push({ date, label }); };
+  if (r.module === 'invest') { add(nextMonthly(Number(d.sipDay)), 'SIP'); add(parseDate(d.maturity), 'Matures'); }
+  if (r.module === 'loans') add(nextMonthly(Number(d.emiDay)), 'EMI');
+  if (r.module === 'cards') add(nextMonthly(Number(d.dueDay)), 'Payment due');
+  if (r.module === 'vehicle') {
+    if (d.lastService && d.serviceMonths) add(addMonths(parseDate(d.lastService), Number(d.serviceMonths)), 'Service');
+    add(parseDate(d.insurance), 'Insurance'); add(parseDate(d.puc), 'PUC');
+  }
+  if (r.module === 'health') add(parseDate(d.next), d.kind || 'Due');
+  return c.filter((x) => x.date >= addDays(today(), -30)).sort((a, b) => a.date - b.date)[0] || null;
+}
+function dueLabel(due) {
+  const n = Math.round((due.date - today()) / DAY);
+  return `${due.label} ${n < 0 ? `was ${fmtDate(due.date)}` : n === 0 ? 'today' : n === 1 ? 'tomorrow' : n <= 30 ? `in ${n} days` : `on ${fmtDate(due.date)}`}`;
+}
+// ₹24.00 L, ₹1.25 Cr: short Indian format for big numbers.
+const inrShort = (n) => (Math.abs(n) >= 1e7 ? `₹${(n / 1e7).toFixed(2)} Cr` : Math.abs(n) >= 1e5 ? `₹${(n / 1e5).toFixed(2)} L` : inr.format(n));
+function renderLife() {
+  const recs = state.life || [];
+  const upcoming = recs.map((r) => ({ r, due: lifeDue(r) })).filter((x) => x.due && x.due.date <= addDays(today(), 30)).sort((a, b) => a.due.date - b.due.date);
+  const invested = recs.filter((r) => r.module === 'invest').reduce((s, r) => s + (Number(r.data?.value) || Number(r.data?.invested) || 0), 0);
+  const owed = recs.filter((r) => r.module === 'loans').reduce((s, r) => s + (Number(r.data?.outstanding) || 0), 0);
+  const cash = latestBalances().reduce((s, b) => s + b.balance, 0);
+  $('#summary').onclick = (e) => { if (e.target.closest('#taxBtn')) openTax(); };
+  $('#summary').innerHTML = `<h2>Life</h2><p>Investments, loans, cards, vehicles, health and more, with reminders.</p>
+    <div class="tools"><button class="mini" id="taxBtn">${icon.file} Tax centre</button></div>
+    ${invested || owed || cash ? `<div class="money3"><div><small>Bank balance</small><b class="num">${inrShort(cash)}</b></div><div><small>Investments</small><b class="num in">${inrShort(invested)}</b></div><div><small>Loans</small><b class="num">${inrShort(owed)}</b></div></div>
+    <p>Net worth about <b class="num">${inr.format(cash + invested - owed)}</b></p>` : ''}`;
+  $('#list').innerHTML = `<div class="spends">
+    ${upcoming.length ? `<section class="sblock"><p class="section-title">Coming up in 30 days</p>${upcoming.map(({ r, due }) => `<button class="payrow lrow" data-lid="${esc(r.id)}"><span><b>${esc(r.title)}</b><small class="${due.date <= addDays(today(), 3) ? 'due' : ''}">${esc(dueLabel(due))}</small></span><span class="num">${r.module === 'loans' && r.data?.emi ? inr.format(r.data.emi) : r.module === 'cards' && r.data?.outstanding ? inr.format(r.data.outstanding) : r.module === 'invest' && r.data?.monthly ? inr.format(r.data.monthly) : ''}</span></button>`).join('')}</section>` : ''}
+    <div class="modgrid">${Object.entries(LIFE).map(([k, m]) => { const n = recs.filter((r) => r.module === k).length; return `<button class="modcard" data-mod="${k}"><b>${m.name}</b><small>${n ? `${n} saved` : m.hint}</small></button>`; }).join('')}</div>
+  </div>`;
+}
+function openLifeList(mod) {
+  const m = LIFE[mod], recs = (state.life || []).filter((r) => r.module === mod);
+  openSheet(`${head(m.name)}
+    ${recs.length ? recs.map((r) => { const due = lifeDue(r); return `<button class="payrow lrow" data-lid="${esc(r.id)}"><span><b>${esc(r.title)}</b><small>${r.locked ? 'Encrypted, tap to unlock' : esc(m.line(r.data || {}) || '')}${due ? `<br><span class="${due.date <= addDays(today(), 7) ? 'due' : ''}">${esc(dueLabel(due))}</span>` : ''}</small></span></button>`; }).join('')
+      : `<p class="hint">Nothing here yet. ${m.hint}.</p>`}
+    <div class="actions" style="margin-top:16px"><button class="btn primary" id="lifeAdd">${icon.plus} Add</button>${mod === 'invest' ? `<button class="btn" id="casBtn">${icon.upload} Import mutual funds (CAS PDF)</button>` : ''}</div>`);
+  $('#lifeAdd').onclick = () => openLifeForm(mod, null);
+  const cas = $('#casBtn'); if (cas) cas.onclick = importCas;
+}
+async function openLifeForm(mod, rec) {
+  const m = LIFE[mod];
+  let d = rec ? rec.data : {};
+  if (rec?.locked) {
+    try { await ensureVaultKey(); d = JSON.parse(await decText(vault.key, rec.raw)); } catch (e) { return toast(e.message || 'Unlock your vault to see this.', true); }
+  }
+  const input = ([k, l, type, opts]) => {
+    const v = d[k] ?? '';
+    if (type === 'select') return `<label class="field"><span>${l}</span><select name="${k}">${opts.map((o) => `<option ${o === v ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select></label>`;
+    if (type === 'text') return `<label class="field"><span>${l}</span><textarea name="${k}" rows="2" maxlength="1000">${esc(v)}</textarea></label>`;
+    const t = type === 'date' ? 'date' : type === 'money' || type === 'number' || type === 'day' ? 'number' : 'text';
+    return `<label class="field"><span>${l}${type === 'money' ? ' (₹)' : ''}</span><input name="${k}" type="${t}" ${t === 'number' ? `inputmode="decimal" min="${type === 'day' ? 1 : 0}" ${type === 'day' ? 'max="31"' : 'step="any"'}` : ''} value="${esc(v)}" autocomplete="off" /></label>`;
+  };
+  openSheet(`${head(rec ? 'Edit' : `Add to ${m.name}`)}
+    <form class="form" id="lifeForm" novalidate>
+      <label class="field"><span>${m.title}</span><input name="__title" maxlength="80" value="${esc(rec?.title || '')}" autocomplete="off" /></label>
+      ${m.fields.map(input).join('')}
+      ${m.secure ? `<div class="badge">${icon.lock} Saved encrypted with your vault password</div>` : ''}
+      <div class="form-actions">${rec ? '<button type="button" class="btn danger" id="lifeDel">Delete</button>' : '<button type="button" class="btn" data-close>Cancel</button>'}<button class="btn primary" id="saveBtn">Save</button></div>
+    </form>`);
+  const del = $('#lifeDel');
+  if (del) del.onclick = async () => { if (!confirm(`Delete "${rec.title}"?`)) return; del.disabled = true; try { await deleteObj('life', rec); closeSheet(); renderAll(); toast('Deleted'); } catch (e) { toast(e.message, true); del.disabled = false; } };
+  $('#lifeForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target, title = f.__title.value.trim();
+    if (!title) return toast('Enter a name.', true);
+    const data = {};
+    m.fields.forEach(([k, , type]) => { const v = f.elements[k].value.trim(); if (v !== '') data[k] = ['money', 'number', 'day'].includes(type) ? Number(v) : v; });
+    const probe = { module: mod, data };
+    const due = lifeDue(probe);
+    const dayField = { invest: 'sipDay', loans: 'emiDay', cards: 'dueDay' }[mod];
+    const out = { module: mod, title, due: due && !dayField ? toISO(due.date) : (mod === 'invest' && data.maturity) || '', dueDay: dayField && data[dayField] ? String(data[dayField]) : '' };
+    if (m.secure) { await ensureVaultKey().catch(() => null); if (!vault.key) return toast('Create or unlock your vault password to save this securely.', true); out.data = await encText(vault.key, JSON.stringify(data)); }
+    else out.data = JSON.stringify(data);
+    await runSave($('#saveBtn'), () => saveObj('life', rec ? { ...rec, data: undefined } : null, out, [], new Set(), { encrypt: false, baseName: '' }, () => {}), 'Saved');
+  };
+}
+
+/* ---------- Quick add: type or say "Paid 250 for lunch with UPI from ICICI yesterday" ---------- */
+const QUICK_CATS = [['Food', /lunch|dinner|breakfast|food|swiggy|zomato|restaurant|tea|coffee|snack/], ['Groceries', /grocer|vegetable|milk|fruit|kirana|dmart|bigbasket|blinkit|zepto/],
+  ['Fuel', /petrol|diesel|fuel|cng/], ['Transport', /uber|ola|auto|cab|bus|train|metro|rapido|parking|toll/], ['Shopping', /shopping|clothes|shoes|amazon|flipkart|myntra/],
+  ['Bills & recharge', /recharge|electricity|bill|wifi|broadband|gas cylinder|dth/], ['Rent', /\brent\b/], ['Health', /medicine|doctor|hospital|pharmacy|test/],
+  ['Entertainment', /movie|netflix|concert|game/], ['Travel', /flight|hotel|trip|travel/], ['Education', /fees|course|books|tuition/], ['Gifts', /gift/]];
+function parseQuick(text) {
+  const t = ' ' + text.toLowerCase().replace(/[₹,]/g, ' ').replace(/\brs\.?\b|\brupees?\b/g, ' ') + ' ';
+  const r = {};
+  const amt = t.match(/(\d+(?:\.\d{1,2})?)\s*(k|thousand|hundred)?\b/);
+  if (amt) r.amount = Number(amt[1]) * (amt[2] === 'k' || amt[2] === 'thousand' ? 1000 : amt[2] === 'hundred' ? 100 : 1);
+  r.type = /\b(received|got|salary|credited|refund|cashback|earned)\b/.test(t) ? 'in' : 'out';
+  if (r.type === 'in') r.category = /salary/.test(t) ? 'Salary' : /refund/.test(t) ? 'Refund' : /cashback/.test(t) ? 'Cashback' : 'From someone';
+  else { const c = QUICK_CATS.find(([, re]) => re.test(t)); if (c) r.category = c[0]; }
+  r.method = /\bupi|gpay|google pay|phonepe|paytm\b/.test(t) ? 'UPI' : /\bcard\b/.test(t) ? 'Card' : /\bcash\b/.test(t) ? 'Cash' : /\bneft|imps|net ?banking\b/.test(t) ? 'Net banking' : '';
+  const acc = accountList().find((a) => new RegExp(`\\b${a.toLowerCase()}\\b`).test(t));
+  if (acc) r.account = acc;
+  const dd = new Date(today());
+  if (/\byesterday\b/.test(t)) r.date = toISO(addDays(dd, -1));
+  else if (/\btoday\b/.test(t)) r.date = toISO(dd);
+  else { const f = findDates(text)[0]; if (f && f.date <= dd) r.date = f.iso; }
+  const nm = t.match(/\b(?:for|on|at|to|from)\s+([a-z][a-z ]{1,30}?)(?=\s+(?:with|via|using|by|from|on|yesterday|today|in|through)\b|\s*$)/);
+  if (nm && !/^(upi|card|cash|icici|canara|gpay|phonepe|paytm)$/.test(nm[1].trim())) r.note = nm[1].trim().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  return r;
+}
+function listen(onText) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast('Voice input isn\'t available in this browser. Type it instead.', true);
+  const rec = new SR();
+  rec.lang = 'en-IN'; rec.interimResults = false; rec.maxAlternatives = 1;
+  rec.onresult = (e) => onText(e.results[0][0].transcript);
+  rec.onerror = () => toast('Didn\'t catch that. Try again.', true);
+  rec.start(); toast('Listening…');
+}
+
+/* ---------- Ask Kagaz: simple questions about your data ---------- */
+const MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+function periodFromText(q) {
+  const t = today(), ym = ymOf(t);
+  if (/last month/.test(q)) { const p = ymShift(ym, -1); return { from: `${p}-01`, to: `${p}-31`, label: ymLabel(p) }; }
+  if (/this year|in \d{4}|year/.test(q)) { const y = (q.match(/\b(20\d{2})\b/) || [])[1] || t.getFullYear(); return { from: `${y}-01-01`, to: `${y}-12-31`, label: String(y) }; }
+  if (/today/.test(q)) return { from: toISO(t), to: toISO(t), label: 'today' };
+  if (/yesterday/.test(q)) { const y = toISO(addDays(t, -1)); return { from: y, to: y, label: 'yesterday' }; }
+  if (/this week|week/.test(q)) return { from: toISO(addDays(t, -6)), to: toISO(t), label: 'the last 7 days' };
+  const mi = MONTH_NAMES.findIndex((m) => q.includes(m) || new RegExp(`\\b${m.slice(0, 3)}\\b`).test(q));
+  if (mi >= 0) { let y = t.getFullYear(); if (mi > t.getMonth()) y--; const p = `${y}-${String(mi + 1).padStart(2, '0')}`; return { from: `${p}-01`, to: `${p}-31`, label: ymLabel(p) }; }
+  return { from: `${ym}-01`, to: `${ym}-31`, label: 'this month' };
+}
+function answer(qRaw) {
+  const q = qRaw.toLowerCase();
+  if (/balance/.test(q)) { const b = latestBalances(); return b.length ? b.map((x) => `${x.account}: ${inr.format(x.balance)} (as of ${fmtDate(parseDate(x.date))})`).join('\n') : 'No balance seen yet. It appears after a bank SMS with "Avl Bal".'; }
+  if (/owe|lent|borrow/.test(q)) { const o = openLoans(); return o.length ? o.map((l) => `${l.person} ${l.direction === 'lent' ? 'owes you' : 'is owed'} ${inr.format(outstanding(l))}${l.note ? ` (${l.note})` : ''}`).join('\n') : 'Nobody owes you anything right now.'; }
+  if (/expir|renew|valid|due|when/.test(q)) {
+    const words = q.replace(/\b(when|does|do|my|is|the|expire|expires|expiry|renew|valid|till|due|will|it|next)\b|\?/g, ' ').trim().split(/\s+/).filter((w) => w.length > 2);
+    const hits = [];
+    state.docs.forEach((d) => { const s = `${d.title} ${d.docType} ${d.holder}`.toLowerCase(); if (words.some((w) => s.includes(w))) { const w = docStatus(d); hits.push(`${d.title || d.docType}${d.holder ? ` (${d.holder})` : ''}: ${w.expiry ? `${w.status === 'expired' ? 'expired' : 'valid until'} ${fmtDate(w.expiry)}` : 'no expiry date saved'}`); } });
+    state.bills.forEach((b) => { if (words.some((w) => `${b.product} ${b.brand}`.toLowerCase().includes(w))) { const w = billStatus(b); hits.push(`${b.product} warranty: ${w.expiry ? `${w.status === 'expired' ? 'ended' : 'until'} ${fmtDate(w.expiry)}` : 'no warranty'}`); } });
+    (state.life || []).forEach((r) => { if (!r.locked && words.some((w) => `${r.title} ${LIFE[r.module].name}`.toLowerCase().includes(w))) { const d = lifeDue(r); if (d) hits.push(`${r.title}: ${dueLabel(d)}`); } });
+    if (hits.length) return hits.join('\n');
+  }
+  if (/spen|spent|paid|cost|how much|earn|income|received/.test(q)) {
+    const per = periodFromText(q);
+    const isIn = /earn|income|received|got/.test(q);
+    let list = periodEntries(per).filter((x) => x.type === (isIn ? 'in' : 'out') && counted(x));
+    const cat = [...spendCats(), ...incomeCats()].map((c) => c[0]).find((c) => q.includes(c.toLowerCase().split(' ')[0]));
+    const words = q.replace(/\b(how|much|did|i|do|spend|spent|on|in|at|for|this|last|month|year|week|today|yesterday|earn|earned|paid|money|what|my|the)\b|\?|\b\d{4}\b/g, ' ').split(/\s+/).filter((w) => w.length > 2 && !MONTH_NAMES.some((m) => m.startsWith(w) || w.startsWith(m.slice(0, 3))));
+    let what = isIn ? 'Money in' : 'Spent';
+    if (cat) { list = list.filter((x) => x.category === cat); what += ` on ${cat}`; }
+    else if (words.length) { const byName = list.filter((x) => words.some((w) => (x.note || '').toLowerCase().includes(w))); if (byName.length) { list = byName; what += ` at ${words.join(' ')}`; } }
+    return `${what} ${per.label}: ${inr.format(sumOf(list))} across ${list.length} entr${list.length === 1 ? 'y' : 'ies'}.`;
+  }
+  return 'Try: "How much did I spend on food last month?", "When does my car insurance expire?", "Who owes me?" or "What\'s my balance?"';
+}
+function openAsk() {
+  openSheet(`${head('Ask Kagaz')}
+    <form id="askF" class="ask"><input class="inp" id="askQ" placeholder="How much did I spend on food in August?" autocomplete="off" />
+      <button type="button" class="icon-btn" id="askMic" aria-label="Speak">${icon.mic}</button><button class="btn primary">Ask</button></form>
+    <div id="askA" class="msg-preview" hidden></div>
+    <div class="chips wrapchips" id="askEx">${['Spent on food this month?', 'Spent last month?', 'Who owes me?', 'My balance?', 'When does insurance expire?'].map((x) => `<button type="button" class="chip">${x}</button>`).join('')}</div>`);
+  const run = async (q) => {
+    $('#askQ').value = q; const a = $('#askA'); a.hidden = false;
+    if (!scriptUrl()) { a.textContent = answer(q); return; }
+    a.textContent = 'Thinking…';
+    try { a.textContent = await askAi(q); } catch (err) { a.textContent = `${answer(q)}\n\n(AI unavailable: ${err.message})`; }
+  };
+  $('#askF').onsubmit = (e) => { e.preventDefault(); if ($('#askQ').value.trim()) run($('#askQ').value.trim()); };
+  $('#askEx').onclick = (e) => { const b = e.target.closest('.chip'); if (b) run(b.textContent); };
+  $('#askMic').onclick = () => listen(run);
+  setTimeout(() => $('#askQ').focus(), 60);
+}
+
+
+/* ---------- Script connection (needed for AI and emergency access) ---------- */
+const scriptUrl = () => String(state.settings.scriptUrl || '').trim();
+async function callScript(payload) {
+  if (!scriptUrl()) throw new Error('Connect your bank sync script first: Menu > Connect script.');
+  let r;
+  // text/plain keeps this a "simple" request, which Apps Script accepts from a browser.
+  try { r = await fetch(scriptUrl(), { method: 'POST', body: JSON.stringify({ key: state.settings.scriptKey || '', ...payload }) }); }
+  catch { throw new Error('Couldn\'t reach your script. Check your internet connection.'); }
+  const j = await r.json().catch(() => ({}));
+  if (!j.ok) throw new Error(j.error === 'Wrong key' ? 'The secret key doesn\'t match your script. Check it in Menu > Connect script.' : j.error || 'Your script didn\'t answer.');
+  return j;
+}
+function openConnect() {
+  openSheet(`${head('Connect script')}
+    <p class="sheet-sub">Paste your bank sync script's web app link and secret key (both are in BANK-SYNC-SETUP). They unlock AI answers and emergency access.</p>
+    <form class="form" id="cn"><label class="field"><span>Web app link</span><input name="u" value="${esc(scriptUrl())}" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off" /></label>
+      <label class="field"><span>Secret key</span><input name="k" value="${esc(state.settings.scriptKey || '')}" autocomplete="off" /></label>
+      <p class="hint" id="cnStatus"></p>
+      <div class="form-actions"><button type="button" class="btn" id="cnTest">Test</button><button class="btn primary">Save</button></div></form>`);
+  const f = $('#cn');
+  const save = async () => { state.settings.scriptUrl = f.u.value.trim(); state.settings.scriptKey = f.k.value.trim(); await saveSettings(); };
+  $('#cnTest').onclick = async () => {
+    $('#cnStatus').textContent = 'Testing…';
+    try { await save(); const j = await callScript({ action: 'ping' }); $('#cnStatus').textContent = j.ai ? 'Connected. AI is ready.' : 'Connected. Add your Anthropic API key in the script to turn on AI.'; }
+    catch (err) { $('#cnStatus').textContent = err.message; }
+  };
+  f.onsubmit = async (e) => { e.preventDefault(); try { await save(); closeSheet(); toast('Saved'); } catch (err) { toast(err.message, true); } };
+}
+
+/* ---------- AI helpers ---------- */
+function dataForAi() {
+  const since = toISO(addDays(today(), -400));
+  const money = state.exps.map(normExp).filter((x) => x.date >= since).sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-700).map((x) => `${x.date},${x.type},${x.amount},${x.category},${acctName(x.account)},${(x.note || '').replace(/,/g, ' ')}`).join('\n');
+  const bills = state.bills.map((b) => { const w = billStatus(b); return `${b.product},${b.price ?? ''},${b.purchaseDate},${w.expiry ? toISO(w.expiry) : 'none'}`; }).join('\n');
+  const docs = state.docs.map((d) => `${d.title || d.docType},${d.holder},${d.expiryDate || 'none'}`).join('\n');
+  const life = (state.life || []).filter((r) => !r.locked).map((r) => { const d = lifeDue(r); return `${LIFE[r.module].name},${r.title},${d ? `${d.label} ${toISO(d.date)}` : ''},${JSON.stringify(r.data)}`; }).join('\n');
+  const people = openLoans().map((l) => `${l.person},${l.direction},${outstanding(l)}`).join('\n');
+  const bals = latestBalances().map((b) => `${b.account},${b.balance},${b.date}`).join('\n');
+  return `Today: ${toISO(today())}. Currency INR.\nMONEY (date,type,amount,category,account,payee):\n${money}\nBILLS (product,price,bought,warranty_until):\n${bills}\nDOCUMENTS (title,person,expiry):\n${docs}\nLIFE (section,title,next_due,details):\n${life}\nPEOPLE (person,lent_or_borrowed,outstanding):\n${people}\nBALANCES (account,balance,as_of):\n${bals}`;
+}
+async function askAi(question) {
+  const j = await callScript({ action: 'ai', system: 'You are Kagaz, a personal finance and documents assistant in India. Answer briefly and exactly from the data given. Use ₹ and Indian number formatting. If the data does not contain the answer, say so. Own transfers and card bill payments are not spending.', prompt: `${dataForAi()}\n\nQUESTION: ${question}` });
+  return j.text;
+}
+async function imageForAi(file) {
+  const f = await maybeCompress(file);
+  const small = f.size > 1.2e6 ? await maybeCompress(new File([f], f.name, { type: 'image/png' })) : f;
+  const buf = new Uint8Array(await small.arrayBuffer());
+  return { image: b64(buf), mediaType: small.type || 'image/jpeg' };
+}
+async function readBillPhotoAi(file) {
+  const img = await imageForAi(file);
+  const j = await callScript({ action: 'ai', ...img, system: 'Read Indian shop bills and invoices. Reply with only a JSON object, no other text.',
+    prompt: 'Extract: {"product": short product name, "brand": string, "store": seller name, "purchaseDate": "YYYY-MM-DD", "price": number total paid, "warrantyMonths": number or null, "serial": serial/IMEI or ""}. Use null when unknown.' });
+  const m = j.text.match(/\{[\s\S]*\}/);
+  return m ? JSON.parse(m[0]) : {};
+}
+function draftClaim(it) {
+  openDialog(`<h3>Draft a claim email</h3><p>What's wrong with your ${esc(it.product)}?</p>
+    <form id="cl"><textarea class="inp" id="clIssue" rows="3" placeholder="e.g. Screen flickers since last week"></textarea>
+    <div class="two"><button type="button" class="btn" id="clNo">Cancel</button><button class="btn primary" id="clGo">Draft</button></div></form>`);
+  $('#clNo').onclick = closeDialog;
+  $('#cl').onsubmit = async (e) => {
+    e.preventDefault();
+    const issue = $('#clIssue').value.trim(); if (!issue) return toast('Describe the problem.', true);
+    const btn = $('#clGo'); btn.disabled = true; btn.textContent = 'Drafting';
+    const w = billStatus(it);
+    try {
+      const j = await callScript({ action: 'ai', system: 'Write short, polite, firm warranty claim emails for customers in India. Plain text. First line "Subject: ...".',
+        prompt: `Product: ${it.product}\nBrand: ${it.brand || ''}\nBought from: ${it.store || ''} on ${it.purchaseDate}\nPrice: ${it.price ?? ''}\nSerial/IMEI: ${it.serial || ''}\nWarranty valid until: ${w.expiry ? fmtDate(w.expiry) : 'unknown'}\nProblem: ${issue}\nMention the invoice is attached.` });
+      const [first, ...rest] = j.text.trim().split('\n');
+      const subject = first.replace(/^subject:\s*/i, ''), body = rest.join('\n').trim();
+      closeDialog();
+      openSheet(`${head('Claim email')}<p class="sheet-sub">Attach the invoice from this bill when you send it.</p>
+        <div class="msg-preview"><b>${esc(subject)}</b>\n\n${esc(body)}</div>
+        <div class="actions"><a class="btn primary" href="mailto:?subject=${enc(subject)}&body=${enc(body)}">${icon.share} Open in email app</a><button class="btn" id="clCopy">Copy text</button></div>`);
+      $('#clCopy').onclick = () => navigator.clipboard.writeText(`${subject}\n\n${body}`).then(() => toast('Copied'));
+    } catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Draft'; }
+  };
+}
+
+/* ---------- Emergency access settings ---------- */
+function openEmergency() {
+  const st = state.settings;
+  const link = scriptUrl() ? `${scriptUrl()}?emergency=1` : '';
+  openSheet(`${head('Emergency access')}
+    <p class="sheet-sub">A person you trust can request access in an emergency. You get an email and can deny it. If you don't, they get view access to your Kagaz folder after the waiting days. Encrypted documents still need your vault password, so keep it written somewhere they can find.</p>
+    <form class="form" id="em">
+      <label class="check"><input type="checkbox" name="on" ${st.emOn === '1' ? 'checked' : ''} /><span><b>Turn on emergency access</b></span></label>
+      <label class="field"><span>Their name</span><input name="name" value="${esc(st.emName || '')}" autocomplete="off" /></label>
+      <label class="field"><span>Their Google email</span><input name="email" type="email" value="${esc(st.emEmail || '')}" autocomplete="off" /></label>
+      <label class="field"><span>Days to wait before access</span><input name="days" type="number" inputmode="numeric" min="1" max="30" value="${esc(st.emDays || '3')}" /></label>
+      ${link ? '' : '<p class="hint">Connect your script first (Menu > Connect script) to get the link to give them.</p>'}
+      <div class="form-actions">${link ? '<button type="button" class="btn" id="emShare">Send them the link</button>' : '<button type="button" class="btn" data-close>Cancel</button>'}<button class="btn primary">Save</button></div>
+    </form>`);
+  const f = $('#em');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    if (f.on.checked && !/^\S+@\S+\.\S+$/.test(f.email.value.trim())) return toast('Enter their email.', true);
+    Object.assign(state.settings, { emOn: f.on.checked ? '1' : '0', emName: f.name.value.trim(), emEmail: f.email.value.trim(), emDays: String(Math.min(30, Math.max(1, Number(f.days.value) || 3))) });
+    try { await saveSettings(); closeSheet(); toast('Saved'); } catch (err) { toast(err.message, true); }
+  };
+  const sh = $('#emShare');
+  if (sh) sh.onclick = () => {
+    const text = `If something happens to me, open this link to request emergency access to my Kagaz documents: ${link}`;
+    if (navigator.share) navigator.share({ title: 'Kagaz emergency access', text }).catch(() => {});
+    else navigator.clipboard.writeText(text).then(() => toast('Link copied'));
+  };
+}
+
+/* ---------- Mutual fund CAS import ---------- */
+function parseCas(lines) {
+  const funds = [];
+  let folio = '', scheme = '';
+  const num = (s) => parseFloat(String(s).replace(/,/g, ''));
+  for (const raw of lines) {
+    const l = raw.replace(/\s+/g, ' ').trim();
+    const fo = l.match(/Folio No\s*:\s*([\w\/ -]+?)(?:\s{2,}|\s+PAN|\s+KYC|$)/i);
+    if (fo) folio = fo[1].trim();
+    if (/fund|scheme/i.test(l) && /(growth|idcw|dividend|plan|option)/i.test(l) && !/closing|nav on|market value|opening/i.test(l)) {
+      scheme = l.replace(/^[A-Z0-9]{2,10}-\s*/, '').replace(/\s*\(.*?(advisor|registrar|non-demat).*$/i, '').replace(/\s*-\s*ISIN.*$/i, '').trim().slice(0, 90);
+    }
+    const close = l.match(/Closing Unit Balance:\s*([\d,]+\.\d+)/i);
+    if (close && scheme) {
+      const mv = l.match(/Market Value[^:]*:\s*(?:INR|Rs\.?)?\s*([\d,]+\.\d{2})/i);
+      const cost = l.match(/(?:Total )?Cost Value[^:]*:\s*(?:INR|Rs\.?)?\s*([\d,]+\.\d{2})/i);
+      funds.push({ name: scheme, folio, units: num(close[1]), value: mv ? num(mv[1]) : 0, cost: cost ? num(cost[1]) : 0 });
+      scheme = '';
+    }
+  }
+  return funds.filter((f) => f.value > 0);
+}
+function importCas() {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = 'application/pdf,.pdf';
+  input.onchange = async () => {
+    const file = input.files[0]; if (!file) return;
+    toast('Reading the statement…');
+    let lines = null, password;
+    for (let i = 0; i < 4 && !lines; i++) {
+      try { lines = await pdfLines(file, password); }
+      catch (err) { if (err?.name !== 'PasswordException') return toast('Couldn\'t read this PDF.', true); password = await askPassword(i ? 'That didn\'t work. Try again.' : 'CAS statements are protected with the password you chose when you requested it (often your PAN).'); if (password == null) return; }
+    }
+    if (!lines) return;
+    const funds = parseCas(lines);
+    if (!funds.length) return toast('No funds found. Make sure it\'s a CAMS or KFintech CAS PDF.', true);
+    const existing = (state.life || []).filter((r) => r.module === 'invest');
+    openSheet(`${head('Import mutual funds')}<p class="sheet-sub">${funds.length} funds found, worth ${inr.format(sumOf(funds.map((f) => ({ amount: f.value }))))} in total.</p>
+      ${funds.map((f) => `<div class="payrow"><span><b>${esc(f.name)}</b><small>${f.units} units${f.folio ? `, folio ${esc(f.folio)}` : ''}${existing.some((r) => r.title === f.name) ? ', will update' : ''}</small></span><span class="num">${inr.format(f.value)}</span></div>`).join('')}
+      <div class="form-actions" style="margin-top:14px"><button class="btn" data-close>Cancel</button><button class="btn primary" id="casGo">Save all</button></div>`);
+    $('#casGo').onclick = async () => {
+      const btn = $('#casGo'); btn.disabled = true; btn.textContent = 'Saving';
+      try {
+        const fresh = [];
+        for (const f of funds) {
+          const old = existing.find((r) => r.title === f.name);
+          const data = { ...(old?.data || {}), kind: 'Mutual fund', where: f.folio ? `Folio ${f.folio}` : '', value: f.value, ...(f.cost ? { invested: f.cost } : {}), units: f.units };
+          if (old) await saveObj('life', { ...old, data: undefined }, { data: JSON.stringify(data) }, [], new Set(), { encrypt: false, baseName: '' }, () => {});
+          else fresh.push({ id: uuid(), module: 'invest', title: f.name, data: JSON.stringify(data), due: '', dueDay: '' });
+        }
+        if (fresh.length) await appendRows('life', fresh);
+        closeSheet(); renderAll(); toast(`${funds.length} funds saved`);
+      } catch (err) { toast(err.message, true); btn.disabled = false; btn.textContent = 'Save all'; }
+    };
+  };
+  input.click();
+}
+
+/* ---------- Tax centre ---------- */
+// FY 2025-26 slabs (old and new regime). Rules change every budget: always confirm before filing.
+function slabTax(income, slabs) { let tax = 0, prev = 0; for (const [upto, rate] of slabs) { if (income > prev) tax += (Math.min(income, upto) - prev) * rate; prev = upto; } return tax; }
+function regimeTax(gross, ded) {
+  const newInc = Math.max(0, gross - 75000);
+  let n = slabTax(newInc, [[400000, 0], [800000, 0.05], [1200000, 0.1], [1600000, 0.15], [2000000, 0.2], [2400000, 0.25], [Infinity, 0.3]]);
+  if (newInc <= 1200000) n = 0;
+  const oldInc = Math.max(0, gross - 50000 - ded);
+  let o = slabTax(oldInc, [[250000, 0], [500000, 0.05], [1000000, 0.2], [Infinity, 0.3]]);
+  if (oldInc <= 500000) o = 0;
+  return { n: Math.round(n * 1.04), o: Math.round(o * 1.04) };
+}
+function openTax() {
+  const t = today();
+  const fyStart = t.getMonth() >= 3 ? t.getFullYear() : t.getFullYear() - 1;
+  const fy = `${fyStart}-${String(fyStart + 1).slice(2)}`;
+  const range = { from: `${fyStart}-04-01`, to: `${fyStart + 1}-03-31` };
+  const entries = periodEntries(range);
+  const salary = sumOf(entries.filter((x) => x.type === 'in' && x.category === 'Salary'));
+  const rent = sumOf(entries.filter((x) => x.type === 'out' && x.category === 'Rent'));
+  const saved = parseObj(`tax-${fy}`);
+  const inv = (state.life || []).filter((r) => r.module === 'invest' && ['PPF', 'EPF', 'NPS'].includes(r.data?.kind));
+  const home = (state.life || []).find((r) => r.module === 'loans' && r.data?.kind === 'Home');
+  const v = (k, d) => saved[k] ?? d ?? '';
+  openSheet(`${head(`Tax centre, FY ${fy}`)}
+    <p class="sheet-sub">A quick guide, not tax advice. Slabs are for FY 2025-26. Rules change every budget, so confirm on the income tax portal or with a CA before filing.</p>
+    <form class="form" id="tx">
+      <label class="field"><span>Gross salary for the year (₹)</span><input name="gross" type="number" inputmode="numeric" value="${v('gross', salary ? Math.round(salary) : '')}" /></label>
+      ${salary ? `<p class="hint" style="margin-top:-8px">Salary received so far in Kagaz: ${inr.format(salary)}. Enter the full-year gross from your payslip or Form 16.</p>` : ''}
+      <label class="field"><span>80C: PPF, EPF, ELSS, LIC, tuition, home loan principal (max ₹1,50,000)</span><input name="c80" type="number" inputmode="numeric" value="${v('c80')}" /></label>
+      ${inv.length ? `<p class="hint" style="margin-top:-8px">From Life: ${inv.map((r) => esc(r.title)).join(', ')}</p>` : ''}
+      <label class="field"><span>80D: health insurance premium</span><input name="d80" type="number" inputmode="numeric" value="${v('d80')}" /></label>
+      <label class="field"><span>NPS 80CCD(1B), extra (max ₹50,000)</span><input name="nps" type="number" inputmode="numeric" value="${v('nps')}" /></label>
+      <label class="field"><span>Home loan interest, Section 24 (max ₹2,00,000)</span><input name="hl" type="number" inputmode="numeric" value="${v('hl', home?.data?.outstanding && home?.data?.rate ? Math.round(Math.min(200000, home.data.outstanding * home.data.rate / 100)) : '')}" /></label>
+      <label class="field"><span>HRA exemption you can claim</span><input name="hra" type="number" inputmode="numeric" value="${v('hra')}" /></label>
+      ${rent ? `<p class="hint" style="margin-top:-8px">Rent paid this year in Kagaz: ${inr.format(rent)}.</p>` : ''}
+      <div id="txOut" class="msg-preview"></div>
+      <div class="actions"><button type="button" class="btn" id="txRent">${icon.file} Make rent receipts</button><button class="btn primary">Save</button></div>
+    </form>`);
+  const f = $('#tx');
+  const calc = () => {
+    const n = (k) => Math.max(0, Number(f.elements[k].value) || 0);
+    const ded = Math.min(150000, n('c80')) + n('d80') + Math.min(50000, n('nps')) + Math.min(200000, n('hl')) + n('hra');
+    const { n: tn, o: to } = regimeTax(n('gross'), ded);
+    $('#txOut').textContent = n('gross') ? `Old regime deductions: ${inr.format(ded)}\nTax, new regime: ${inr.format(tn)}\nTax, old regime: ${inr.format(to)}\n${tn === to ? 'Both regimes cost the same.' : `The ${tn < to ? 'new' : 'old'} regime saves about ${inr.format(Math.abs(tn - to))}.`}` : 'Enter your gross salary to compare regimes.';
+  };
+  f.oninput = calc; calc();
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    const o = {}; ['gross', 'c80', 'd80', 'nps', 'hl', 'hra'].forEach((k) => { if (f.elements[k].value !== '') o[k] = Number(f.elements[k].value); });
+    try { await saveList(`tax-${fy}`, o); toast('Saved'); } catch (err) { toast(err.message, true); }
+  };
+  $('#txRent').onclick = () => rentReceipts(fyStart);
+}
+function rentReceipts(fyStart) {
+  openDialog(`<h3>Rent receipts</h3><p>One receipt per month, ready to print or save as PDF for your HRA claim.</p>
+    <form id="rr"><input class="inp" name="tenant" placeholder="Your name" /><input class="inp" name="owner" placeholder="Landlord's name" />
+    <input class="inp" name="pan" placeholder="Landlord's PAN (needed if rent is over ₹1 lakh a year)" /><input class="inp" name="addr" placeholder="Rented house address" />
+    <input class="inp" name="rent" type="number" inputmode="numeric" placeholder="Monthly rent (₹)" />
+    <div class="two"><button type="button" class="btn" id="rrNo">Cancel</button><button class="btn primary">Make receipts</button></div></form>`);
+  $('#rrNo').onclick = closeDialog;
+  $('#rr').onsubmit = (e) => {
+    e.preventDefault();
+    const f = e.target, rent = Number(f.rent.value);
+    if (!f.tenant.value.trim() || !f.owner.value.trim() || !(rent > 0)) return toast('Fill in your name, the landlord\'s name and the rent.', true);
+    const months = Array.from({ length: 12 }, (_, i) => new Date(fyStart, 3 + i, 1)).filter((d) => d <= today());
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Rent receipts</title><style>body{font:14px system-ui,sans-serif;margin:20px}.r{border:1px solid #333;padding:18px 22px;margin-bottom:18px;page-break-inside:avoid}h3{margin:0 0 10px}.s{margin-top:36px;text-align:right}</style></head><body>
+      ${months.map((d) => `<div class="r"><h3>Rent receipt, ${d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</h3>
+        <p>Received a sum of <b>${inr.format(rent)}</b> from <b>${esc(f.tenant.value.trim())}</b> towards rent for the property at ${esc(f.addr.value.trim() || '________')} for the month of ${d.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}.</p>
+        <p>Landlord: <b>${esc(f.owner.value.trim())}</b>${f.pan.value.trim() ? `, PAN ${esc(f.pan.value.trim().toUpperCase())}` : ''}</p>
+        <div class="s">Signature of landlord<br><br>________________</div></div>`).join('')}</body></html>`;
+    closeDialog();
+    const fr = document.createElement('iframe');
+    fr.style.cssText = 'position:fixed;width:0;height:0;border:0';
+    document.body.appendChild(fr);
+    fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
+    setTimeout(() => { fr.contentWindow.print(); setTimeout(() => fr.remove(), 60000); }, 300);
+  };
+}
+
+/* ---------- Currency conversion for spends abroad ---------- */
+const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AED', 'SGD', 'THB', 'JPY', 'AUD', 'CAD', 'MYR', 'LKR', 'NPR'];
+async function fxRate(cur) {
+  try { const r = await fetch(`https://api.frankfurter.app/latest?from=${cur}&to=INR`); const j = await r.json(); if (j.rates?.INR) return j.rates.INR; } catch {}
+  return null;
+}
+
 function askNewName(title, desc, placeholder, existingNames, key) {
   return new Promise((resolve) => {
     openDialog(`<h3>${esc(title)}</h3><p>${esc(desc)}</p>
@@ -3171,9 +3711,12 @@ function openMenu() {
   openSheet(`${head('Kagaz')}
     <div class="menu">
       <div class="label">Security</div>
+      <button id="mConnect">${icon.refresh} Connect script<span class="state">${scriptUrl() ? 'Connected' : 'Not set'}</span></button>
+      <button id="mEmergency">${icon.bell} Emergency access<span class="state">${state.settings.emOn === '1' ? 'On' : 'Off'}</span></button>
       <button id="mLock">${icon.finger} App lock<span class="state">${lock ? 'On' : 'Off'}</span></button>
       <button id="mVault">${icon.key} Vault password<span class="state">${vaultState}</span></button>
       ${lock ? `<button id="mLockNow">${icon.lock} Lock now</button>` : ''}
+      <button id="mAsk">${icon.ask} Ask Kagaz</button>
       <div class="label">Lists</div>
       <button id="mLists">${icon.tag} Categories and document types</button>
       <div class="label">Your data</div>
@@ -3183,8 +3726,11 @@ function openMenu() {
       ${installPrompt ? `<button id="mInstall">${icon.install} Install app on this phone</button>` : ''}
       <button id="mOut">${icon.out} Sign out${AUTH_SERVER && getSession() ? `<span class="state">${sessionDaysLeft()} days left</span>` : ''}</button>
     </div>`);
+  $('#mConnect').onclick = openConnect;
+  $('#mEmergency').onclick = openEmergency;
   $('#mLock').onclick = openLockSettings;
   $('#mLists').onclick = openListsManager;
+  $('#mAsk').onclick = openAsk;
   $('#mVault').onclick = () => {
     if (!vaultExists()) { closeSheet(); askVaultSetup().catch((e) => toast(e.message, true)); }
     else if (vault.key) { lockVault(); closeSheet(); renderAll(); toast('Encrypted documents locked'); }
@@ -3283,6 +3829,8 @@ $('#list').onclick = (e) => {
   }
   if (e.target.closest('#selCopy')) { copySelection(); return; }
   if (e.target.closest('#openPeople')) { openPeople(); return; }
+  const mc = e.target.closest('[data-mod]'); if (mc) { openLifeList(mc.dataset.mod); return; }
+  const lr = e.target.closest('[data-lid]'); if (lr) { const r = state.life.find((x) => x.id === lr.dataset.lid); if (r) openLifeForm(r.module, r); return; }
   if (e.target.closest('#recurSoon')) return;
   const sr = e.target.closest('.srow');
   if (sr) {
@@ -3303,6 +3851,10 @@ $('#list').onclick = (e) => {
   const o = state[state.view].find((x) => x.id === row.dataset.id);
   if (o) state.view === 'bills' ? openBillDetail(o) : openDocDetail(o);
 };
+$('#sheet').addEventListener('click', (e) => {
+  const lr = e.target.closest('[data-lid]');
+  if (lr) { const r = (state.life || []).find((x) => x.id === lr.dataset.lid); if (r) openLifeForm(r.module, r); }
+});
 $('#backdrop').onclick = (e) => { if (e.target.id === 'backdrop' || e.target.closest('[data-close]')) closeSheet(); };
 $('#viewer').onclick = closeViewer;
 document.addEventListener('keydown', (e) => {
